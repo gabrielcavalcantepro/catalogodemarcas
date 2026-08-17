@@ -23,24 +23,39 @@ em CSS/componentes visuais.
 - **Next.js 16** (App Router, Turbopack) + **TypeScript**
 - **Tailwind CSS v4** — config CSS-first (sem `tailwind.config.ts`), tokens
   de tema em [`app/globals.css`](./app/globals.css) via `@theme`
-- **PostgreSQL + Prisma 7** — driver adapter `@prisma/adapter-pg`
+- **PostgreSQL (Supabase) + Prisma 7** — driver adapter `@prisma/adapter-pg`
 - **Zod** para validação de formulários/server actions
 - **jose** para cookies de sessão assinados (sem biblioteca de auth completa
   — escopo do produto não pede login com senha para criadoras, e o admin usa
   uma senha única compartilhada)
-- Upload de fotos: disco local via [`lib/storage.ts`](./lib/storage.ts)
+- Upload de fotos: **Supabase Storage** (bucket `product-photos`) via
+  [`lib/storage.ts`](./lib/storage.ts)
 
 ## Rodando localmente
 
+O projeto roda contra **Supabase** (banco + storage) desde a migração de
+produção — `.env.local` (não versionado, prioridade sobre `.env` igual o
+Next.js já faz nativamente) tem `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD` e `SESSION_SECRET` reais.
+
 ```bash
-docker compose up -d   # Postgres local, porta 5434 (5432/5433 já usados por outros projetos nesta máquina)
 npm run dev
 ```
 
-`.env` (não versionado, ver `.env.example`) tem `DATABASE_URL`,
-`ADMIN_PASSWORD` e `SESSION_SECRET`. Trocar `SESSION_SECRET` invalida todas
-as sessões ativas (criadoras e admin). Admin: `/admin/login` com a senha de
+`docker-compose.yml` (Postgres local, porta 5434) continua funcionando
+como fallback só se `.env.local` for removido/renomeado — `.env` sozinho
+ainda aponta pra ele. Trocar `SESSION_SECRET` invalida todas as sessões
+ativas (criadoras e admin). Admin: `/admin/login` com a senha de
 `ADMIN_PASSWORD`.
+
+**Duas URLs do Supabase, dois usos diferentes** (ver "Prisma 7 + Supabase"
+abaixo pra explicação técnica completa):
+- `DATABASE_URL` — pooled via Supavisor (porta 6543, `?pgbouncer=true`),
+  usada pelo app em runtime (`lib/db.ts`).
+- `DIRECT_URL` — direta (porta 5432, sem pooling), usada só pelo CLI do
+  Prisma (`prisma.config.ts`) pra rodar migration. **Rodar migration
+  (`npm run db:deploy`) é sempre um passo manual/separado — local ou CI —
+  nunca dentro de `next build`.**
 
 ## Modelo de dados
 
@@ -208,6 +223,56 @@ Admin (protegido por [`proxy.ts`](./proxy.ts), que substitui o antigo
   é sempre tratada como ações e aparece sem label, no rodapé do card
   mobile — convenção que as 6 páginas já seguiam antes desse componente
   existir.
+- **Prisma 7 + Supabase (pooled vs direct)**: o pedido original era um
+  campo `directUrl` no `datasource` do `schema.prisma` (padrão clássico do
+  Prisma pra separar conexão pooled/direct) — testei com `prisma validate`
+  e o Prisma 7 **removeu esse campo** ("The datasource property `directUrl`
+  is no longer supported in schema files"; confirmado na doc oficial,
+  removido em favor de só `datasource.url`). Como este projeto já não tem
+  `url` nenhuma em `schema.prisma` (fica em `prisma.config.ts` desde a
+  migração pro Prisma 7) e o client em runtime usa `@prisma/adapter-pg`
+  direto com `process.env.DATABASE_URL` em `lib/db.ts` (nunca lê
+  `prisma.config.ts`), a separação pooled/direct se resolve sem o campo:
+  `prisma.config.ts` aponta pra `DIRECT_URL` (usada só pelo CLI de
+  migration), `lib/db.ts` continua com `DATABASE_URL` (pooled, usada pelo
+  app). Resultado é o mesmo do pedido original, só o mecanismo mudou.
+- **`prisma.config.ts` não carrega `.env.local` sozinho**: o arquivo usava
+  `import "dotenv/config"`, que só lê `.env` — `.env.local` (onde ficam as
+  credenciais reais) é convenção do Next.js, não do pacote `dotenv`. Sem
+  isso, `prisma migrate deploy` rodava silenciosamente contra o Postgres
+  local do docker-compose em vez do Supabase. Corrigido com duas chamadas
+  `config()` explícitas (`.env` depois `.env.local` com `override: true`),
+  replicando a precedência do Next. Scripts Node soltos (`.mjs`/rodados via
+  `npx tsx`) que também precisam do banco/Supabase real devem carregar os
+  dois arquivos na mesma ordem — só `.env` não basta.
+- **Supabase com projeto compartilhado**: o projeto Supabase usado aqui já
+  hospedava outra aplicação (tabelas `metricas_crm`/`metricas_instagram`/
+  `metricas_meta`, confirmado com o usuário que é intencional/compartilhado).
+  Isso faz `prisma migrate deploy` falhar com `P3005: database schema is
+  not empty` na primeira vez (o Prisma se recusa a migrar um banco que já
+  tem conteúdo e não tem a tabela `_prisma_migrations` — não sabe se é
+  seguro). Sem conflito de nome de tabela com o nosso schema, resolvido
+  criando manualmente uma `_prisma_migrations` vazia (mesma estrutura que
+  o Prisma cria do zero — conferida direto no Postgres local antes de
+  replicar) e rodando `migrate deploy` de novo, que aplicou as 4 migrations
+  normalmente sem tocar nas tabelas da outra app. **Cuidado**: `migrate
+  resolve --applied` (a ferramenta "oficial" de baseline) não serve pra
+  esse caso — ela marca migration como aplicada sem rodar o SQL, o que
+  seria errado aqui porque nossas tabelas ainda não existiam.
+- **`lib/storage.ts`**: bucket `product-photos` (já existia, criado fora do
+  código — o app só usa). Upload sempre com a `SUPABASE_SERVICE_ROLE_KEY`
+  (bypassa RLS do bucket), guardado atrás de `import "server-only"` — essa
+  chave nunca pode ter prefixo `NEXT_PUBLIC_` nem ser importada por um
+  componente `"use client"` (os dois únicos chamadores,
+  `app/admin/(dashboard)/marcas/actions.ts` e `.../produtos/actions.ts`,
+  são Server Actions). `next.config.ts` precisa de `images.remotePatterns`
+  com o host do Supabase (`new URL(SUPABASE_URL).hostname`, calculado em
+  vez de hardcoded) — sem isso `next/image` recusa renderizar as fotos, já
+  que a URL passou de `/uploads/...` local pra uma URL completa do bucket.
+  Testado de ponta a ponta (script descartável, não faz parte do repo):
+  upload real, fetch da URL pública (200, content-type de imagem), e o
+  fluxo real do app (criar Marca com foto pelo admin, ver a foto renderizar
+  via `next/image`) — arquivo de teste removido do bucket depois.
 - **Ambiente**: o projeto já foi movido uma vez de uma pasta sincronizada
   pelo Google Drive (não é volume NTFS de verdade lá — `mklink /J` falha,
   `node_modules`/`.next` ficavam extremamente lentos). Evitar recolocar o
@@ -305,8 +370,31 @@ falta de estilo — confirmado visualmente depois do fix). Achei e corrigi
 no processo: o Select customizado mostrava o `value` cru (cuid) em vez do
 label até eu passar `items` pro componente do shadcn.
 
-**Não implementado ainda / possíveis próximos passos:** deploy de produção
-(hospedagem, Postgres gerenciado, storage de upload que sobreviva a
-serverless — ver nota de `lib/storage.ts`), troca da `ADMIN_PASSWORD` de
-exemplo antes de ir ao ar, e qualquer refinamento de UX que o usuário pedir
-depois de usar o painel de verdade.
+Depois disso: migração de infraestrutura de produção pra Supabase (banco +
+storage), substituindo o plano original de Neon + Vercel Blob — os dois
+pendentes que faltavam pra produção. `prisma.config.ts` aponta pra
+`DIRECT_URL` (migration), `lib/db.ts` continua com `DATABASE_URL` (pooled,
+runtime), `lib/storage.ts` trocou de disco local pra Supabase Storage
+(bucket `product-photos`). `ADMIN_PASSWORD`/`SESSION_SECRET` gerados
+aleatoriamente e gravados em `.env.local` (só existiam como placeholder do
+`.env.example` antes). No caminho, achei e corrigi dois problemas reais
+antes de aplicar qualquer coisa em produção: o campo `directUrl` que eu ia
+usar não existe mais no Prisma 7 (ver "Prisma 7 + Supabase" acima), e
+`prisma.config.ts` não carregava `.env.local` (migration teria rodado
+contra o banco local sem eu perceber). Também identifiquei que o
+`DIRECT_URL` fornecido tinha caracteres especiais sem URL-encoding na
+senha — corrigido pelo usuário copiando a connection string direto do
+painel da Supabase. Testado de ponta a ponta com conexão real (não só
+`tsc`/`build`): `migrate deploy` aplicou as 4 migrations no Postgres da
+Supabase (projeto compartilhado com outra app — ver armadilha acima),
+query de leitura + write/read/delete via `DATABASE_URL` pooled, upload +
+leitura pública real no bucket, e o fluxo completo pela UI (login admin
+com a senha gerada, criar Marca com foto, foto renderizando via
+`next/image` do host do Supabase) — tudo limpo depois (sem dado de teste
+sobrando no banco ou no bucket).
+
+**Não implementado ainda / possíveis próximos passos:** deploy de fato na
+Vercel (configurar as env vars lá, confirmar que `next build` não tenta
+rodar migration sozinho — já não roda, mas vale conferir no primeiro
+deploy) e qualquer refinamento de UX que o usuário pedir depois de usar o
+painel de verdade.
