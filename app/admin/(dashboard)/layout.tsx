@@ -5,6 +5,13 @@ import { AdminNav } from "@/components/admin-nav";
 import { ToastFromQuery } from "@/components/toast-from-query";
 import { logoutAdmin } from "./actions";
 
+// A autenticação do admin roda em proxy.ts (fora da árvore de render), então
+// nenhuma página aqui embaixo é forçada a ler uma Request-time API sozinha —
+// sem isso, o Next prerenderiza páginas como /admin/divulgacoes como HTML
+// estático no build e serve esse snapshot congelado em produção, ignorando
+// criadoras/marcas cadastradas depois do deploy.
+export const dynamic = "force-dynamic";
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

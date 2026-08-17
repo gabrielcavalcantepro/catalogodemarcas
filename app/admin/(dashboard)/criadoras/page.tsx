@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -17,6 +17,17 @@ export default async function CriadorasPage() {
 
   const columns: ResponsiveTableColumn<CreatorRow>[] = [
     { header: "@ TikTok", cell: (c) => `@${c.tiktokHandle}` },
+    {
+      header: "Perfil",
+      cell: (c) => (
+        <a href={`https://www.tiktok.com/@${c.tiktokHandle}`} target="_blank" rel="noopener noreferrer">
+          <Button variant="secondary">
+            <ExternalLink size={16} strokeWidth={1.75} />
+            Ver no TikTok
+          </Button>
+        </a>
+      ),
+    },
     { header: "Nome", cell: (c) => c.name ?? "—" },
     { header: "E-mail", cell: (c) => c.email ?? "—" },
     {

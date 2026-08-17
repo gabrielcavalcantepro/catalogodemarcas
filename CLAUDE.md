@@ -226,6 +226,31 @@ Admin (protegido por [`proxy.ts`](./proxy.ts), que substitui o antigo
     componente) — como o app não tem alternância clara/escuro, troquei
     `useTheme()` por `theme="dark"` fixo e removi a dependência
     (`npm uninstall next-themes`).
+- **Cache estático do App Router silenciosamente servindo o admin
+  desatualizado**: primeiro uso real em produção (depois do deploy na
+  Vercel) revelou que `/admin`, `/admin/criadoras`, `/admin/marcas`,
+  `/admin/divulgacoes` e `/admin/produtos/novo` apareciam como `○ Static`
+  no output do `next build` — prerenderizadas uma vez no build e servidas
+  como HTML congelado depois disso, ignorando criadoras/marcas cadastradas
+  depois do deploy (sintoma reportado: criadora e marca recém-criadas não
+  apareciam nos selects de Divulgações). Causa: a autenticação do admin
+  roda em `proxy.ts`, fora da árvore de render — nenhuma página do
+  dashboard chama `cookies()`/`headers()`/`searchParams` por conta própria,
+  então o Next não tinha motivo pra marcá-las como dinâmicas. As páginas
+  públicas nunca tiveram esse problema porque todas chamam `cookies()`
+  direto (gate de sessão da criadora), o que já força renderização
+  dinâmica. Também nunca apareceu localmente porque `next dev` sempre
+  renderiza sob demanda, sem cache — só `next build`/produção expõe isso.
+  Corrigido com um `export const dynamic = "force-dynamic"` único em
+  `app/admin/(dashboard)/layout.tsx`, que cascateia pra toda a árvore do
+  dashboard (confirmado comparando o output de `next build` antes/depois —
+  todas as rotas de admin viraram `ƒ Dynamic`), em vez de caçar
+  `revalidatePath` por página — essa era a abordagem frágil que já tinha
+  causado o bug (cada action só revalida o próprio path, nunca os de
+  outras entidades que dependem dos mesmos dados). Verificado rodando
+  `next build && next start` localmente (não só `next dev`, que não
+  reproduz o cache) e conferindo com Playwright que uma criadora/marca
+  criada não precisa de nenhuma ação extra pra aparecer em Divulgações.
 - **`components/responsive-table.tsx`**: componente genérico orientado a
   colunas (`{ header, cell(row) }`) usado pelas 6 tabelas do admin (Marcas,
   Produtos, Criadoras, Fila, Limites, Divulgações) — renderiza `<table>`
