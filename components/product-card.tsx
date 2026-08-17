@@ -1,0 +1,79 @@
+import Image from "next/image";
+import Link from "next/link";
+import { SampleRequestControl } from "@/components/sample-request-control";
+import { formatBRL } from "@/lib/format";
+import type { Product, Brand } from "@/generated/prisma/client";
+
+type ProductWithBrand = Product & { brand: Brand };
+
+export function ProductCard({
+  product,
+  lastRequestedAt,
+  index = 0,
+}: {
+  product: ProductWithBrand;
+  lastRequestedAt: Date | null;
+  index?: number;
+}) {
+  const photo = product.photoUrls[0];
+  const hasFlash = product.flashPrice != null;
+
+  return (
+    <div
+      className="animate-card-in flex flex-col rounded-[20px] bg-charcoal p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+      style={{ animationDelay: `${index * 35}ms` }}
+    >
+      <Link href={`/produto/${product.id}`} className="block">
+        <div className="relative aspect-square w-full overflow-hidden rounded-[12px] bg-mat">
+          {photo ? (
+            <Image
+              src={photo}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-ink/40">Sem foto</div>
+          )}
+        </div>
+      </Link>
+
+      <div className="flex flex-1 flex-col px-1 pt-3">
+        <Link href={`/produto/${product.id}`} className="block">
+          <span className="text-caption text-mist">{product.brand.name}</span>
+          <h3 className="mt-0.5 text-base font-bold text-paper">{product.name}</h3>
+        </Link>
+
+        {hasFlash ? (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs text-mist">Vitrine</span>
+              <span className="text-base font-bold text-paper">
+                {formatBRL(Number(product.showcasePrice))}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs text-mist">Oferta</span>
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-base font-bold text-gold">
+                  {formatBRL(Number(product.flashPrice))}
+                </span>
+                <span className="text-xs font-semibold text-gold">
+                  {Number(product.flashCommissionPercent)}%
+                </span>
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-2 text-base font-bold text-paper">
+            {formatBRL(Number(product.showcasePrice))}
+          </div>
+        )}
+
+        <div className="mt-3 flex-1" />
+        <SampleRequestControl productId={product.id} lastRequestedAt={lastRequestedAt} className="mt-3" />
+      </div>
+    </div>
+  );
+}

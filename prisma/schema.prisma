@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Criadora de conteúdo, sem senha. Acesso via allowlist (§5.1/§6.3): a
+// equipe cadastra só o tiktokHandle antes; name e email ficam null até ela
+// completar o Registro público, quando ela mesma escolhe o email (ver
+// app/(public)/actions.ts).
+model Creator {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String?  @unique
+  tiktokHandle String   @unique
+  createdAt    DateTime @default(now())
+
+  sampleRequests SampleRequest[]
+  brandLimits    CreatorBrandLimit[]
+  contentPosts   ContentPost[]
+}
+
+// Marca parceira.
+model Brand {
+  id                 String   @id @default(cuid())
+  name               String
+  logoUrl            String?
+  defaultSampleLimit Int      @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  products       Product[]
+  sampleRequests SampleRequest[]
+  creatorLimits  CreatorBrandLimit[]
+  contentPosts   ContentPost[]
+}
+
+enum SampleRequestBehavior {
+  REDIRECT_TIKTOK_SHOP
+  NOTIFY_TEAM
+}
+
+// Produto vinculado a uma marca.
+model Product {
+  id                         String                 @id @default(cuid())
+  brandId                    String
+  brand                      Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name                       String
+  description                String
+  differentials              String[]
+  showcasePrice              Decimal                @db.Decimal(10, 2)
+  showcaseCommissionPercent  Decimal                @db.Decimal(5, 2)
+  // Oferta relâmpago: opcional, sem agendamento — a equipe preenche/limpa
+  // os dois campos manualmente para ativar/desativar. Andam sempre juntos.
+  flashPrice                 Decimal?               @db.Decimal(10, 2)
+  flashCommissionPercent     Decimal?               @db.Decimal(5, 2)
+  photoUrls                  String[]
+  requestBehavior            SampleRequestBehavior
+  tiktokShopUrl              String?
+  active                     Boolean                @default(true)
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+
+  sampleRequests SampleRequest[]
+  contentPosts   ContentPost[]
+
+  @@index([brandId])
+}
+
+enum SampleRequestStatus {
+  PENDING
+  DONE
+}
+
+// Registro de clique em "Solicitar Amostra" (4.1 / 5.3 / 6.2).
+model SampleRequest {
+  id                String                 @id @default(cuid())
+  creatorId         String
+  creator           Creator                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  brandId           String
+  brand             Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  behaviorAtRequest SampleRequestBehavior
+  status            SampleRequestStatus    @default(PENDING)
+  createdAt         DateTime               @default(now())
+
+  // Uma criadora não pode solicitar o mesmo produto duas vezes (spec §4.2)
+  // — garantia real no banco, não só uma dica visual no botão.
+  @@unique([creatorId, productId])
+  @@index([creatorId])
+  @@index([brandId])
+  @@index([productId])
+}
+
+// Override manual de limite de amostras por criadora+marca (5.4 / 6.2).
+// Quando não existe linha, o limite efetivo é Brand.defaultSampleLimit.
+model CreatorBrandLimit {
+  id        String   @id @default(cuid())
+  creatorId String
+  creator   Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  limit     Int
+  updatedAt DateTime @updatedAt
+
+  @@unique([creatorId, brandId])
+}
+
+enum ContentType {
+  VIDEO
+  LIVE
+  STORY
+}
+
+// Divulgação de conteúdo (substitui a planilha de UGC) — 5.5.
+model ContentPost {
+  id          String      @id @default(cuid())
+  creatorId   String
+  creator     Creator     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  brandId     String
+  brand       Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  contentType ContentType
+  postDate    DateTime    @db.Date
+  link        String?
+  createdAt   DateTime    @default(now())
+
+  @@index([creatorId])
+  @@index([brandId])
+}

@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+/* Fornece os custom variants data-open/data-closed/etc. que os
+   componentes gerados pelo shadcn (Select/Popover/Calendar) usam pra
+   animar abertura/fechamento — não mexe em cor nem fonte. */
+@import "shadcn/tailwind.css";
+
+/* Tokens de design — design-x-performance.md (Quick Start) */
+@theme {
+  /* Cores */
+  --color-void: #0f0f0f;
+  --color-ink: #151515;
+  --color-charcoal: #212121;
+  --color-graphite: #2c2c2c;
+  --color-paper: #ffffff;
+  --color-mist: #a8a29e;
+  --color-gold: #fad214;
+  --color-gold-dark: #e0bd0a;
+  --color-alert: #f87171;
+  /* Extensão pontual — não faz parte da paleta de marca, só o fundo
+     neutro claro exigido atrás das fotos de produto (§ Card de Produto). */
+  --color-mat: #eae7e1;
+
+  /* Tipografia */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Escala tipográfica */
+  --text-caption: 12px;
+  --text-body-sm: 14px;
+  --text-body: 16px;
+  --text-heading-sm: 20px;
+  --text-heading-md: 28px;
+  --text-heading-lg: clamp(28px, 6vw, 44px);
+
+  /* Espaçamento: sem tokens customizados — a escala dinâmica padrão do
+     Tailwind v4 (--spacing: 0.25rem, calc(N * spacing) por utilitário) já
+     produz 4/8/12/16/24/32/48/64px nos sufixos 1/2/3/4/6/8/12/16. Definir
+     --spacing-4, --spacing-8 etc. aqui colidiria com esses sufixos do
+     Tailwind (ex.: w-64 viraria 64px em vez de 16rem/256px) e quebraria
+     silenciosamente qualquer utilitário numérico usado no app inteiro. */
+
+  /* Raio */
+  --radius-pill: 999px;
+  --radius-button: 10px;
+  --radius-input: 10px;
+  --radius-card: 20px;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Entrada do card de produto (design doc § Tokens — Movimento) */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-card-in {
+  animation: card-in 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-card-in {
+    animation: none;
+  }
+}
+
+/* Ponte pros componentes shadcn/ui (Select, Popover, Calendar, Sonner) —
+   eles esperam essas variáveis (--popover, --accent, --border, --ring
+   etc.), então mapeio pros nossos tokens em vez de aceitar a paleta
+   padrão zinc/OKLCH que o gerador do shadcn escreve. Sem tema claro/escuro
+   alternável (app é sempre escuro, ver design doc), então só existe um
+   bloco de valores — nada de classe `.dark` ou @custom-variant. */
+@theme inline {
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  --background: var(--color-ink);
+  --foreground: var(--color-paper);
+  --card: var(--color-charcoal);
+  --card-foreground: var(--color-paper);
+  --popover: var(--color-charcoal);
+  --popover-foreground: var(--color-paper);
+  --primary: var(--color-gold);
+  --primary-foreground: var(--color-ink);
+  --secondary: var(--color-graphite);
+  --secondary-foreground: var(--color-paper);
+  --muted: var(--color-graphite);
+  --muted-foreground: var(--color-mist);
+  --accent: var(--color-graphite);
+  --accent-foreground: var(--color-paper);
+  --destructive: var(--color-alert);
+  --border: var(--color-graphite);
+  --input: var(--color-graphite);
+  --ring: var(--color-gold);
+  --radius: 10px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
