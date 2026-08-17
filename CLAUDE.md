@@ -124,6 +124,17 @@ Admin (protegido por [`proxy.ts`](./proxy.ts), que substitui o antigo
   client é gerado em `generated/prisma` (gitignored), importado via
   `@/generated/prisma/client`. `package.json` tem `"type": "module"` por
   causa disso — cuidado ao rodar scripts Node soltos (usar `.mjs` ou ESM).
+  Por ser gitignored, `generated/prisma` não existe num clone limpo (ex.:
+  build da Vercel) — `package.json` tem `"postinstall": "prisma generate"`
+  pra recriar sozinho depois de todo `npm install`; sem isso o build quebra
+  com `Module not found: Can't resolve '@/generated/prisma/client'`. Efeito
+  colateral: `prisma generate` carrega `prisma.config.ts`, que resolve
+  `env("DIRECT_URL")` de forma eager só pra montar a config — então o
+  `postinstall` falha se `DIRECT_URL` não estiver definida no ambiente
+  (confirmado testando com as variáveis todas ausentes), mesmo sem nenhuma
+  migration rodando. Na Vercel isso significa que `DIRECT_URL` (e as outras
+  variáveis do Supabase) precisam estar cadastradas em Project Settings >
+  Environment Variables — `.env.local` é local e nunca chega lá.
 - **Sessões**: cookie `xp_creator` (creatorId, 1 ano) e `xp_admin`
   (`{admin:true}`, 30 dias), assinados com HS256/`SESSION_SECRET` via jose.
   Senha do admin comparada em tempo constante (`timingSafeEqual` em
