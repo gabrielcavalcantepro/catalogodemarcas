@@ -46,51 +46,55 @@ export function ProductCard({
       <div className="flex flex-1 flex-col px-1 pt-3">
         <Link href={`/produto/${product.id}`} className="block">
           <span className="text-caption text-mist">{product.brand.name}</span>
-          <h3 className="mt-0.5 text-base text-paper">{product.name}</h3>
+          <h3 className="title-fade-clamp mt-0.5 text-base text-paper">{product.name}</h3>
         </Link>
 
-        {hasFlash ? (
-          <div className="mt-2 space-y-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs text-mist">Vitrine</span>
-              <span className="text-base font-bold text-paper">
+        <div className="mt-2 divide-y divide-dashed divide-graphite">
+          {hasFlash ? (
+            <>
+              <div className="flex items-baseline justify-between gap-2 pb-1.5">
+                <span className="text-xs text-mist">Vitrine</span>
+                <span className="text-base font-bold text-paper">
+                  {formatBRL(Number(product.showcasePrice))}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-2 py-1.5">
+                <span className="text-xs text-mist">Oferta</span>
+                <span className="text-base font-bold text-gold">
+                  {formatBRL(Number(product.flashPrice))}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-2 py-1.5">
+                <span className="text-xs text-mist">Comissão</span>
+                <span className="text-base font-bold text-gold">
+                  {Number(product.flashCommissionPercent)}%
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="pb-1.5 text-base font-bold text-paper">
                 {formatBRL(Number(product.showcasePrice))}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs text-mist">Oferta</span>
-              <span className="text-base font-bold text-gold">
-                {formatBRL(Number(product.flashPrice))}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs text-mist">Comissão</span>
-              <span className="text-base font-bold text-gold">
-                {Number(product.flashCommissionPercent)}%
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-2 space-y-1">
-            <div className="text-base font-bold text-paper">{formatBRL(Number(product.showcasePrice))}</div>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs text-mist">Comissão</span>
-              <span className="text-base font-bold text-gold">
-                {Number(product.showcaseCommissionPercent)}%
-              </span>
-            </div>
-          </div>
-        )}
+              </div>
+              <div className="flex items-baseline justify-between gap-2 py-1.5">
+                <span className="text-xs text-mist">Comissão</span>
+                <span className="text-base font-bold text-gold">
+                  {Number(product.showcaseCommissionPercent)}%
+                </span>
+              </div>
+            </>
+          )}
 
-        {limitStatus && (
-          <div
-            className={`mt-2 text-xs ${limitStatus.reached ? "font-medium text-gold" : "text-mist"}`}
-          >
-            {limitStatus.reached
-              ? "Limite de amostras desta marca atingido"
-              : `${limitStatus.limit - limitStatus.used} amostra${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} restante${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} nesta marca`}
-          </div>
-        )}
+          {limitStatus && (
+            <div
+              className={`pt-1.5 text-xs ${limitStatus.reached ? "font-medium text-gold" : "text-mist"}`}
+            >
+              {limitStatus.reached
+                ? "Limite de amostras desta marca atingido"
+                : `${limitStatus.limit - limitStatus.used} amostra${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} restante${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} nesta marca`}
+            </div>
+          )}
+        </div>
 
         <div className="mt-3 flex-1" />
         <SampleRequestControl

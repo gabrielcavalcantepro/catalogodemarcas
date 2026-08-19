@@ -694,3 +694,22 @@ catálogo até agora — `logoutCreator` (`app/(public)/actions.ts`, só
 `clearCreatorSession` + redirect) adicionado no menu mobile
 (`components/mobile-nav.tsx`) e no header desktop
 (`app/(public)/layout.tsx`), os dois só apareciam pra criadora logada.
+
+Depois disso: polimento visual do card de produto na grade pública.
+- **Título com degradê em 2 linhas** (`.title-fade-clamp` em
+  `globals.css`) — títulos longos estouravam a altura do card e
+  deixavam a grade desalinhada. `line-clamp` sozinho cortaria seco ou
+  com "…"; como isso não deixa nada "sobrando" pra aplicar um degradê
+  em cima, a saída foi mascarar (`mask-image`/`-webkit-mask-image`) a
+  última ~35% da altura do próprio bloco já clampado em 2 linhas — o
+  texto parece se apagar em vez de ser cortado.
+- **Linhas tracejadas entre Vitrine/Oferta/Comissão/limite** — trocado
+  `space-y-1` por `divide-y divide-dashed divide-graphite` no container
+  desses campos em `ProductCard`; a linha de limite de amostras
+  (`limitStatus`) foi movida pra dentro do mesmo container (antes era
+  um `<div>` irmão fora dele) especificamente pra herdar o divisor
+  tracejado entre ela e Comissão/preço.
+- **Skeleton usava `bg-mat`** (`#eae7e1`, tom claro pensado pra fundo de
+  foto de produto ausente, não pra loading state) — trocado por
+  `bg-graphite` em `components/product-grid-skeleton.tsx`, consistente
+  com o resto da paleta escura.

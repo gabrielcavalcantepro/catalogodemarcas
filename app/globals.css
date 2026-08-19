@@ -76,6 +76,21 @@ body {
   }
 }
 
+/* Título do card de produto: trava em 2 linhas com um degradê suave no
+   final da 2ª em vez de corte seco ou "…" — line-clamp sozinho não deixa
+   nada "vazando" pra aplicar o degradê em cima, então a máscara cobre a
+   parte de baixo do próprio bloco já clampado (a última ~35% da altura
+   dele), dando a impressão de que o texto se apaga em vez de ser cortado. */
+.title-fade-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 96%);
+  mask-image: linear-gradient(to bottom, black 60%, transparent 96%);
+}
+
 /* Ponte pros componentes shadcn/ui (Select, Popover, Calendar, Sonner) —
    eles esperam essas variáveis (--popover, --accent, --border, --ring
    etc.), então mapeio pros nossos tokens em vez de aceitar a paleta
