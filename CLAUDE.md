@@ -77,9 +77,23 @@ abaixo pra explicação técnica completa):
   `flashCommissionPercent` (opcionais — oferta relâmpago, sem agendamento,
   a equipe ativa/desativa preenchendo ou limpando os dois juntos; validado
   como tudo-ou-nada em `app/admin/(dashboard)/produtos/actions.ts`).
-- **SampleRequest** — todo clique em "Solicitar Amostra" (dos dois
-  comportamentos) vira uma linha aqui, para alimentar "Minhas Solicitações".
-  Só as `NOTIFY_TEAM` entram na Fila e contam para o limite por marca (a
+- **SampleRequest** — só clique em produto `NOTIFY_TEAM` vira uma linha
+  aqui (mudou depois do uso real revelar dois problemas com
+  `REDIRECT_TIKTOK_SHOP` também criar linha: o `redirect()` pro TikTok
+  Shop não disparava de forma confiável a partir da Server Action, e
+  cliques em vários produtos "brigavam" entre si — só o primeiro
+  realmente persistia, os demais se perdiam. Causa raiz: misturar
+  `redirect()` + `revalidatePath` + tracking na mesma action fazia o
+  router do Next abortar requisições de Server Action irmãs ainda em voo
+  quando a revalidação de uma delas disparava um refresh de rota.
+  `REDIRECT_TIKTOK_SHOP` virou um `<a target="_blank">` puro em
+  `SampleRequestControl` — nunca chama `requestSample`, sempre clicável,
+  nunca "já solicitado", nunca aparece em Minhas Solicitações. Verificado
+  depois disparando 3 cliques em paralelo (`Promise.all`, sem esperar) em
+  3 produtos `NOTIFY_TEAM` diferentes — os 3 persistiram corretamente,
+  confirmando que a raiz era mesmo a mistura de comportamentos na mesma
+  action, não uma race condition genérica em Server Actions). Só as
+  `NOTIFY_TEAM` entram na Fila e contam para o limite por marca (a
   restrição do §6.2 é intencional, não um bug). `status`
   (`PENDING`/`DONE`) é uma adição não explícita no spec — sem isso a fila
   cresceria indefinidamente; a equipe marca como atendido depois de mandar
@@ -482,3 +496,49 @@ em Criadoras com link direto pro TikTok (`https://www.tiktok.com/@` +
 (reaproveita as URLs, sem re-upload), `active: false` por padrão pra não
 aparecer na vitrine idêntica ao original até a equipe revisar, e
 redireciona direto pra tela de edição da cópia).
+
+Depois disso: lote de feedback do primeiro uso real da vitrine pública e
+do admin de Produtos. Achados relevantes, além de correções visuais
+simples (nome do produto sem negrito, comissão aparecendo no card mesmo
+sem oferta relâmpago — antes só aparecia com oferta ativa, inconsistente
+com a página de detalhe que já mostrava nos dois casos):
+- **Redesign de `SampleRequestControl`** — ver armadilha "SampleRequest"
+  acima pra causa raiz. `REDIRECT_TIKTOK_SHOP` virou link externo puro
+  ("Ir para a loja"); `NOTIFY_TEAM` ganhou cópia nova ("Quero solicitar
+  amostra" → "Já solicitado" + "Nossa equipe vai aprovar a sua
+  solicitação e enviar um convite no TikTok."). `minhas-solicitacoes`
+  filtra `behaviorAtRequest: NOTIFY_TEAM` explicitamente — cobre tanto o
+  comportamento novo (que nunca cria linha REDIRECT_TIKTOK_SHOP) quanto
+  linhas antigas já existentes no banco de antes dessa mudança.
+- **Preview de foto antes de salvar** — `product-form.tsx` e
+  `brand-form.tsx` não mostravam nenhuma prévia do arquivo selecionado
+  antes do submit (só o texto nativo do `<input type=file>`). Investigado
+  a fundo se fotos realmente não persistiam (upload+criar, upload+editar
+  e duplicar produto — os três testados via Playwright contra `next
+  build && next start`, e os 7 produtos reais do banco já tinham
+  `photoUrls.length === 3` cada) e não achei perda de dado nenhuma — o
+  mecanismo de upload sempre funcionou. A interpretação mais plausível
+  pro relato ("a foto devia aparecer também") era falta de feedback
+  visual imediato, não perda de dado; corrigido com preview local via
+  `URL.createObjectURL` (revogado a cada nova seleção, evita acumular
+  memória) assim que o arquivo é escolhido, antes mesmo de salvar.
+- **Layout do admin: sidebar fixa + conteúdo centralizado** —
+  `app/admin/(dashboard)/layout.tsx` não travava altura nenhuma
+  (`min-h-screen` deixa crescer à vontade), então o documento inteiro
+  rolava junto, sidebar incluída. Corrigido com `md:h-screen
+  md:overflow-hidden` no container e `md:overflow-y-auto` só no `<main>`
+  — restrito a `md:` de propósito, mobile empilha a sidebar como barra de
+  topo e depende do scroll natural da página. Conteúdo centralizado com
+  `mx-auto max-w-7xl` dentro do `<main>` — fica centralizado em relação à
+  área de conteúdo (à direita da sidebar), não à janela inteira; com a
+  sidebar só de um lado, centralizar em relação à janela completa
+  deixaria o conteúdo visualmente puxado pra direita.
+- **Edição inline em `/admin/produtos`** — preço, comportamento e status
+  editáveis direto na lista (`components/inline-edit-product.tsx`), sem
+  abrir a tela de Editar. Três Server Actions novas em `produtos/actions.ts`
+  (`quickUpdatePrice`/`quickUpdateBehavior`/`quickUpdateActive`) chamadas
+  direto como função a partir do client (não presas a um `<form>`, então
+  um `throw` vira Promise rejeitada, tratável com try/catch sem
+  `useActionState`). Trocar pra `REDIRECT_TIKTOK_SHOP` exige que o
+  produto já tenha `tiktokShopUrl` configurado — a edição rápida não pede
+  esse campo inline, só a tela de Editar completa faz isso.

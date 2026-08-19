@@ -184,6 +184,41 @@ export async function deleteProduct(formData: FormData) {
   revalidatePath("/");
 }
 
+// Trio de actions pra edição rápida direto na lista (item pedido pelo
+// usuário: mudar preço/comportamento/status sem abrir a tela de Editar).
+// Chamadas direto como função a partir de components/inline-edit-product.tsx
+// (não presas a um <form>), então um throw aqui vira uma Promise rejeitada
+// no client, tratável com try/catch — sem precisar de useActionState.
+export async function quickUpdatePrice(productId: string, showcasePrice: number) {
+  if (!Number.isFinite(showcasePrice) || showcasePrice < 0) {
+    throw new Error("Preço inválido.");
+  }
+  await prisma.product.update({ where: { id: productId }, data: { showcasePrice } });
+  revalidatePath("/admin/produtos");
+  revalidatePath("/");
+}
+
+export async function quickUpdateBehavior(
+  productId: string,
+  requestBehavior: "NOTIFY_TEAM" | "REDIRECT_TIKTOK_SHOP",
+) {
+  if (requestBehavior === "REDIRECT_TIKTOK_SHOP") {
+    const existing = await prisma.product.findUnique({ where: { id: productId } });
+    if (!existing?.tiktokShopUrl) {
+      throw new Error("Configure a URL da loja no TikTok Shop editando o produto antes de mudar pra esse comportamento.");
+    }
+  }
+  await prisma.product.update({ where: { id: productId }, data: { requestBehavior } });
+  revalidatePath("/admin/produtos");
+  revalidatePath("/");
+}
+
+export async function quickUpdateActive(productId: string, active: boolean) {
+  await prisma.product.update({ where: { id: productId }, data: { active } });
+  revalidatePath("/admin/produtos");
+  revalidatePath("/");
+}
+
 export async function duplicateProduct(formData: FormData) {
   const productId = String(formData.get("productId") ?? "");
   if (!productId) return;

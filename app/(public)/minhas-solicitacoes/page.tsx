@@ -8,8 +8,12 @@ export default async function MinhasSolicitacoesPage() {
     redirect("/");
   }
 
+  // REDIRECT_TIKTOK_SHOP não passa mais pela Server Action que cria essa
+  // linha (é um link externo puro em SampleRequestControl), mas o filtro
+  // fica explícito aqui também pra não expor linhas antigas desse tipo
+  // criadas antes dessa mudança.
   const requests = await prisma.sampleRequest.findMany({
-    where: { creatorId },
+    where: { creatorId, behaviorAtRequest: "NOTIFY_TEAM" },
     include: { product: true, brand: true },
     orderBy: { createdAt: "desc" },
   });

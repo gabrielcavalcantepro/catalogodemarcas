@@ -36,14 +36,23 @@ export function ProductForm({
   const [state, formAction, pending] = useActionState(action, initialState);
   const [behavior, setBehavior] = useState(defaultValues?.requestBehavior ?? "NOTIFY_TEAM");
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
 
   function handlePhotosChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const totalSize = Array.from(e.target.files ?? []).reduce((sum, f) => sum + f.size, 0);
+    const files = Array.from(e.target.files ?? []);
+    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
     setPhotoError(
       totalSize > MAX_UPLOAD_BYTES
         ? `As fotos selecionadas somam mais de ${MAX_UPLOAD_LABEL}. Escolha menos fotos ou arquivos menores.`
         : null,
     );
+    // Preview local do arquivo escolhido antes mesmo de salvar — sem isso
+    // o admin só vê "3 arquivos selecionados" no input nativo, sem
+    // confirmação visual do que está prestes a subir.
+    setPhotoPreviews((prev) => {
+      prev.forEach((url) => URL.revokeObjectURL(url));
+      return files.map((f) => URL.createObjectURL(f));
+    });
   }
 
   return (
@@ -214,6 +223,14 @@ export function ProductForm({
           onChange={handlePhotosChange}
         />
         <ErrorText>{photoError}</ErrorText>
+        {photoPreviews.length > 0 && (
+          <div className="mt-2 grid grid-cols-4 gap-3">
+            {photoPreviews.map((url) => (
+              // eslint-disable-next-line @next/next/no-img-element -- preview local (blob:), next/image não serve URLs de objeto
+              <img key={url} src={url} alt="" className="h-20 w-20 rounded border border-graphite object-cover" />
+            ))}
+          </div>
+        )}
       </Field>
 
       {defaultValues && (

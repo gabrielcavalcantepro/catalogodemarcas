@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ResponsiveTable, type ResponsiveTableColumn } from "@/components/responsive-table";
+import { InlineEditActive, InlineEditBehavior, InlineEditPrice } from "@/components/inline-edit-product";
 import { formatBRL } from "@/lib/format";
 import { deleteProduct, duplicateProduct } from "./actions";
 
@@ -34,7 +35,7 @@ export default async function ProdutosPage({
     { header: "Marca", cell: (p) => p.brand.name },
     {
       header: "Preço",
-      cell: (p) => <span className="font-mono">{formatBRL(Number(p.showcasePrice))}</span>,
+      cell: (p) => <InlineEditPrice productId={p.id} initialValue={Number(p.showcasePrice)} />,
     },
     {
       header: "Preço de oferta relâmpago",
@@ -47,16 +48,11 @@ export default async function ProdutosPage({
     },
     {
       header: "Comportamento",
-      cell: (p) => (p.requestBehavior === "NOTIFY_TEAM" ? "Notifica equipe" : "Redireciona p/ TikTok Shop"),
+      cell: (p) => <InlineEditBehavior productId={p.id} initialValue={p.requestBehavior} />,
     },
     {
       header: "Status",
-      cell: (p) =>
-        p.active ? (
-          <span className="text-xs text-mist">Ativo</span>
-        ) : (
-          <span className="text-xs text-mist/60">Inativo</span>
-        ),
+      cell: (p) => <InlineEditActive productId={p.id} initialValue={p.active} />,
     },
     {
       header: "",

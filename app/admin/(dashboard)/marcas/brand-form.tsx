@@ -17,12 +17,17 @@ export function BrandForm({
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     setLogoError(
       file && file.size > MAX_UPLOAD_BYTES ? `O arquivo passa de ${MAX_UPLOAD_LABEL}. Escolha um arquivo menor.` : null,
     );
+    setLogoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
   }
 
   return (
@@ -63,6 +68,18 @@ export function BrandForm({
           onChange={handleLogoChange}
         />
         <ErrorText>{logoError}</ErrorText>
+        {logoPreview && (
+          <div className="mt-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- preview local (blob:), next/image não serve URLs de objeto */}
+            <img
+              src={logoPreview}
+              alt="Prévia da logo selecionada"
+              className="rounded border border-graphite bg-white object-contain p-2"
+              width={120}
+              height={40}
+            />
+          </div>
+        )}
       </Field>
       <ErrorText>{state.error}</ErrorText>
       <Button type="submit" disabled={pending || !!logoError}>

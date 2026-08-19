@@ -104,9 +104,10 @@ export type RequestSampleState = {
 };
 
 // (prevState, formData) em vez de só (formData) pra dar pra usar
-// useActionState no client e disparar um toast sem navegação quando não
-// há redirect (caminho NOTIFY_TEAM — o card já troca de botão pra badge
-// via revalidação, mas precisa confirmar a ação com um toast curto).
+// useActionState no client e disparar um toast sem navegação — não há
+// redirect nenhum aqui: REDIRECT_TIKTOK_SHOP nem chama essa action, é um
+// <a> puro em SampleRequestControl (não precisa de tracking nem impede
+// re-clique). Essa action só existe pro fluxo NOTIFY_TEAM.
 export async function requestSample(
   _prevState: RequestSampleState,
   formData: FormData,
@@ -129,6 +130,9 @@ export async function requestSample(
   if (!product || !product.active) {
     throw new Error("Produto não encontrado.");
   }
+  if (product.requestBehavior !== "NOTIFY_TEAM") {
+    throw new Error("Este produto não usa esse fluxo de solicitação.");
+  }
 
   try {
     await prisma.sampleRequest.create({
@@ -150,10 +154,6 @@ export async function requestSample(
   revalidatePath("/");
   revalidatePath("/produto/" + product.id);
   revalidatePath("/minhas-solicitacoes");
-
-  if (product.requestBehavior === "REDIRECT_TIKTOK_SHOP" && product.tiktokShopUrl) {
-    redirect(product.tiktokShopUrl);
-  }
 
   return { success: true };
 }

@@ -112,6 +112,8 @@ export default async function ProdutoPage({
 
           <SampleRequestControl
             productId={product.id}
+            requestBehavior={product.requestBehavior}
+            tiktokShopUrl={product.tiktokShopUrl}
             lastRequestedAt={lastRequest?.createdAt ?? null}
             className="mt-4 hidden md:block"
           />
@@ -120,7 +122,12 @@ export default async function ProdutoPage({
 
       {/* Mobile: CTA sempre acessível sem rolar até o fim (§ Detalhe do Produto) */}
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-graphite bg-ink p-4 md:hidden">
-        <SampleRequestControl productId={product.id} lastRequestedAt={lastRequest?.createdAt ?? null} />
+        <SampleRequestControl
+          productId={product.id}
+          requestBehavior={product.requestBehavior}
+          tiktokShopUrl={product.tiktokShopUrl}
+          lastRequestedAt={lastRequest?.createdAt ?? null}
+        />
       </div>
     </div>
   );

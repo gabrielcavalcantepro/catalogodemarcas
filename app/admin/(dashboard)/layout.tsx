@@ -14,11 +14,16 @@ export const dynamic = "force-dynamic";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    // md:h-screen + md:overflow-hidden trava a altura no viewport só a
+    // partir do breakpoint onde a sidebar vira coluna lateral de verdade
+    // (md:flex-row) — em mobile ela é só uma barra empilhada no topo, e
+    // travar a altura lá quebraria o scroll natural da página. Sem isso,
+    // o documento inteiro (sidebar incluída) rolava junto com o conteúdo.
+    <div className="flex min-h-screen flex-col md:h-screen md:flex-row md:overflow-hidden">
       <Suspense fallback={null}>
         <ToastFromQuery />
       </Suspense>
-      <aside className="flex flex-col border-b border-graphite bg-charcoal md:w-64 md:border-b-0 md:border-r">
+      <aside className="flex flex-col border-b border-graphite bg-charcoal md:h-screen md:w-64 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r">
         <div className="border-b border-graphite px-6 py-4 md:py-5">
           <Logo />
         </div>
@@ -33,7 +38,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </form>
       </aside>
-      <main className="flex-1 bg-ink px-4 py-6 md:px-8 md:py-8">{children}</main>
+      <main className="flex-1 bg-ink px-4 py-6 md:overflow-y-auto md:px-8 md:py-8">
+        <div className="mx-auto max-w-7xl">{children}</div>
+      </main>
     </div>
   );
 }

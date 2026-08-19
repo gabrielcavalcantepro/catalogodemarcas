@@ -42,7 +42,7 @@ export function ProductCard({
       <div className="flex flex-1 flex-col px-1 pt-3">
         <Link href={`/produto/${product.id}`} className="block">
           <span className="text-caption text-mist">{product.brand.name}</span>
-          <h3 className="mt-0.5 text-base font-bold text-paper">{product.name}</h3>
+          <h3 className="mt-0.5 text-base text-paper">{product.name}</h3>
         </Link>
 
         {hasFlash ? (
@@ -66,13 +66,22 @@ export function ProductCard({
             </div>
           </div>
         ) : (
-          <div className="mt-2 text-base font-bold text-paper">
-            {formatBRL(Number(product.showcasePrice))}
+          <div className="mt-2 flex items-baseline justify-between gap-2">
+            <span className="text-base font-bold text-paper">{formatBRL(Number(product.showcasePrice))}</span>
+            <span className="text-xs font-semibold text-gold">
+              {Number(product.showcaseCommissionPercent)}%
+            </span>
           </div>
         )}
 
         <div className="mt-3 flex-1" />
-        <SampleRequestControl productId={product.id} lastRequestedAt={lastRequestedAt} className="mt-3" />
+        <SampleRequestControl
+          productId={product.id}
+          requestBehavior={product.requestBehavior}
+          tiktokShopUrl={product.tiktokShopUrl}
+          lastRequestedAt={lastRequestedAt}
+          className="mt-3"
+        />
       </div>
     </div>
   );
