@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LayoutGrid, ClipboardList, CircleUserRound } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { MobileNav } from "@/components/mobile-nav";
 import { getCreatorId } from "@/lib/auth/creator";
 import { prisma } from "@/lib/db";
 
@@ -17,13 +18,7 @@ export default async function PublicLayout({ children }: { children: React.React
           <Logo />
           {creator && (
             <nav className="flex items-center gap-4 text-sm">
-              <Link
-                href="/minhas-solicitacoes"
-                aria-label="Minhas Solicitações"
-                className="text-mist transition-colors duration-150 hover:text-gold md:hidden"
-              >
-                <ClipboardList size={22} strokeWidth={1.75} />
-              </Link>
+              <MobileNav tiktokHandle={creator.tiktokHandle} />
               <Link
                 href="/"
                 className="hidden items-center gap-2 text-paper transition-colors duration-150 hover:text-gold md:flex"

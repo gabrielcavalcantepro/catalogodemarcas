@@ -6,13 +6,17 @@ import type { Product, Brand } from "@/generated/prisma/client";
 
 type ProductWithBrand = Product & { brand: Brand };
 
+type LimitStatus = { used: number; limit: number; reached: boolean };
+
 export function ProductCard({
   product,
   lastRequestedAt,
+  limitStatus,
   index = 0,
 }: {
   product: ProductWithBrand;
   lastRequestedAt: Date | null;
+  limitStatus?: LimitStatus | null;
   index?: number;
 }) {
   const photo = product.photoUrls[0];
@@ -61,7 +65,7 @@ export function ProductCard({
             </div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-mist">Comissão</span>
-              <span className="text-xs font-medium text-gold">
+              <span className="text-base font-bold text-gold">
                 {Number(product.flashCommissionPercent)}%
               </span>
             </div>
@@ -71,10 +75,20 @@ export function ProductCard({
             <div className="text-base font-bold text-paper">{formatBRL(Number(product.showcasePrice))}</div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-mist">Comissão</span>
-              <span className="text-xs font-medium text-gold">
+              <span className="text-base font-bold text-gold">
                 {Number(product.showcaseCommissionPercent)}%
               </span>
             </div>
+          </div>
+        )}
+
+        {limitStatus && (
+          <div
+            className={`mt-2 text-xs ${limitStatus.reached ? "font-medium text-gold" : "text-mist"}`}
+          >
+            {limitStatus.reached
+              ? "Limite de amostras desta marca atingido"
+              : `${limitStatus.limit - limitStatus.used} amostra${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} restante${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} nesta marca`}
           </div>
         )}
 

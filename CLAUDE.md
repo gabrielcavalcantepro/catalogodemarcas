@@ -593,3 +593,63 @@ detalhe do produto e formulários do admin.
   formulário de edição já lida com isso sozinho (mostra "Nenhuma foto
   ainda.", sem checkbox de remover fantasma) — nenhuma mudança extra
   precisou em `product-form.tsx`.
+
+Depois disso: terceiro lote — grade mobile, menu hamburguer, limite de
+amostras visível pra criadora, skeleton de carregamento e mais um round
+de alinhamento no admin.
+- **Regressão na comissão do card corrigida** — a rodada anterior tinha
+  reduzido peso/tamanho da comissão (`text-xs font-medium`) interpretando
+  mal um feedback ambíguo; o pedido real era o oposto, comissão do mesmo
+  tamanho que o preço. Voltou pra `text-base font-bold`, igual
+  `Vitrine`/`Oferta`/preço sem oferta — mesmo padrão em todo lugar.
+- **Grade pública: 2 colunas já no mobile** — `grid-cols-1` (base) virou
+  `grid-cols-2`, `sm:grid-cols-2` saiu (redundante agora). `lg:grid-cols-3`
+  continua igual.
+- **`components/mobile-nav.tsx`** (novo) — menu hamburguer client-side
+  pro header público abaixo de `md:`. Antes só tinha um ícone solto de
+  "Minhas Solicitações"; agora abre um dropdown com Catálogo, Minhas
+  Solicitações e o @ da criadora — mesmo conteúdo que já existia
+  descoberto em `md:flex`, só que escondido atrás do menu no mobile.
+- **Limite de amostras por marca visível pra criadora** —
+  `lib/sample-limits.ts` (`getLimitStatusForPairs`) já existia e já era
+  usado pelo admin em `/admin/fila`; passou a ser chamado também no
+  catálogo (`app/(public)/page.tsx`) e na página de detalhe
+  (`produto/[id]/page.tsx`), reaproveitando a mesma função em vez de
+  duplicar a lógica. Mostra "N amostras restantes nesta marca" ou
+  "Limite de amostras desta marca atingido" — mesma copy do badge do
+  admin (`{used}/{limit}` + "— limite atingido"), adaptada pra leitura da
+  criadora. É por marca, não por produto (spec §6.2) — aparece igual em
+  todos os produtos de uma mesma marca, independente do
+  `requestBehavior` de cada um (mesmo em produtos `REDIRECT_TIKTOK_SHOP`,
+  já que o limite é sobre a marca como um todo, não sobre aquele fluxo
+  específico).
+- **`components/catalog-shell.tsx`** (novo, client component) — skeleton
+  de carregamento ao trocar de filtro de marca. Primeira tentativa foi a
+  convenção padrão do App Router (`<Suspense key={brandId} fallback=
+  {...}>` envolvendo um Server Component `ProductGrid` separado) — não
+  disparava o fallback de forma confiável, nem sob delay artificial de
+  1.5s injetado via interceptação de rede em teste (`page.route`),
+  provavelmente por causa de como o router do Next decide quando trocar
+  a árvore visível numa navegação client-side já teve o `<Link>` prefetch
+  disparado. Trocado por uma abordagem client-side direta:
+  `useTransition()` + `router.push()` nos pills de filtro (viraram
+  `<button>`, não `<Link>` mais — perdem o auto-prefetch do Next, o que
+  também ajuda a não gastar banda pré-buscando marcas que a criadora não
+  vai clicar), com `isPending` controlando skeleton vs. `children` (a
+  grade real, renderizada no servidor, passada como children pro
+  shell). `components/product-grid-skeleton.tsx` é o skeleton
+  reaproveitado também em `app/(public)/loading.tsx` (esse continua
+  útil pra navegação vinda de FORA da rota "/", ex.: "Voltar ao
+  catálogo" a partir do detalhe — cenário onde o Suspense padrão
+  funciona normalmente, só não pra troca de searchParams dentro da
+  mesma página).
+- **Alinhamento heading+form nos 6 formulários do admin** — o
+  `mx-auto` adicionado na rodada anterior foi só no `<form>`, então o
+  `<h1>` da página (fora do form) continuava colado na esquerda enquanto
+  o form ficava centralizado abaixo — heading e conteúdo visualmente
+  desalinhados. Corrigido movendo `mx-auto max-w-xl`/`max-w-md` pro
+  `<div>` que envolve heading+form nas 6 páginas (`produtos/novo`,
+  `produtos/[id]`, `marcas/nova`, `marcas/[id]`, `criadoras/nova`,
+  `criadoras/[id]`), removendo o `mx-auto` que tinha ficado só no
+  `<form>` dos 3 componentes de formulário (agora herdam a largura do
+  wrapper da página).

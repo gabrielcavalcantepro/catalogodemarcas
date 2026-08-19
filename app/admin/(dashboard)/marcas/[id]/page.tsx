@@ -13,7 +13,7 @@ export default async function EditarMarcaPage({
   if (!brand) notFound();
 
   return (
-    <div>
+    <div className="mx-auto max-w-md">
       <h1 className="font-display text-heading-md text-paper">Editar marca</h1>
       <div className="mt-6">
         <BrandForm

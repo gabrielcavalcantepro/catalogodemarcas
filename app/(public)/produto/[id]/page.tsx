@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCreatorId } from "@/lib/auth/creator";
+import { getLimitStatusForPairs, limitKey } from "@/lib/sample-limits";
 import { SampleRequestControl } from "@/components/sample-request-control";
 import { ProductGallery } from "@/components/product-gallery";
 import { ExpandableDescription } from "@/components/expandable-description";
@@ -28,6 +29,11 @@ export default async function ProdutoPage({
   const lastRequest = await prisma.sampleRequest.findUnique({
     where: { creatorId_productId: { creatorId, productId: product.id } },
   });
+
+  const limitStatusMap = await getLimitStatusForPairs([
+    { creatorId, brandId: product.brandId, brandDefaultLimit: product.brand.defaultSampleLimit },
+  ]);
+  const limitStatus = limitStatusMap.get(limitKey(creatorId, product.brandId));
 
   const hasFlash = product.flashPrice != null;
   // O admin às vezes cola descrição com parágrafos separados por mais de
@@ -93,6 +99,14 @@ export default async function ProdutoPage({
               </div>
             )}
           </div>
+
+          {limitStatus && (
+            <div className={`mt-3 text-sm ${limitStatus.reached ? "font-medium text-gold" : "text-mist"}`}>
+              {limitStatus.reached
+                ? "Limite de amostras desta marca atingido"
+                : `${limitStatus.limit - limitStatus.used} amostra${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} restante${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} nesta marca`}
+            </div>
+          )}
 
           <SampleRequestControl
             productId={product.id}

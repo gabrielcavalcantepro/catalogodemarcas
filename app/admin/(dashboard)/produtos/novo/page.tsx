@@ -6,7 +6,7 @@ export default async function NovoProdutoPage() {
   const brands = await prisma.brand.findMany({ orderBy: { name: "asc" } });
 
   return (
-    <div>
+    <div className="mx-auto max-w-xl">
       <h1 className="font-display text-heading-md text-paper">Novo produto</h1>
       {brands.length === 0 ? (
         <p className="mt-6 text-mist">

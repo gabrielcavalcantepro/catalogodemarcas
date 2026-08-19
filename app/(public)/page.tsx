@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCreatorId } from "@/lib/auth/creator";
+import { getLimitStatusForPairs, limitKey } from "@/lib/sample-limits";
 import { LoginForm } from "@/components/login-form";
 import { ProductCard } from "@/components/product-card";
+import { CatalogShell } from "@/components/catalog-shell";
 
 export default async function VitrinePage({
   searchParams,
@@ -37,6 +38,10 @@ export default async function VitrinePage({
     }
   }
 
+  const limitStatus = await getLimitStatusForPairs(
+    brands.map((b) => ({ creatorId, brandId: b.id, brandDefaultLimit: b.defaultSampleLimit })),
+  );
+
   return (
     <div>
       <h1 className="font-display text-heading-md text-paper">Catálogo</h1>
@@ -44,47 +49,23 @@ export default async function VitrinePage({
         Marcas parceiras e produtos disponíveis para amostra.
       </p>
 
-      <div className="sticky top-0 z-10 -mx-4 mt-6 flex gap-2 overflow-x-auto bg-ink px-4 py-2 sm:-mx-6 sm:px-6">
-        <FilterLink label="Todas as marcas" active={!brandId} href="/" />
-        {brands.map((brand) => (
-          <FilterLink
-            key={brand.id}
-            label={brand.name}
-            active={brandId === brand.id}
-            href={`/?marca=${brand.id}`}
-          />
-        ))}
-      </div>
-
-      {products.length === 0 ? (
-        <p className="mt-12 text-center text-mist">Nenhum produto disponível ainda.</p>
-      ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              lastRequestedAt={lastRequestByProduct.get(product.id) ?? null}
-              index={index}
-            />
-          ))}
-        </div>
-      )}
+      <CatalogShell brands={brands} activeBrandId={brandId}>
+        {products.length === 0 ? (
+          <p className="mt-12 text-center text-mist">Nenhum produto disponível ainda.</p>
+        ) : (
+          <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
+            {products.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                lastRequestedAt={lastRequestByProduct.get(product.id) ?? null}
+                limitStatus={limitStatus.get(limitKey(creatorId, product.brandId)) ?? null}
+                index={index}
+              />
+            ))}
+          </div>
+        )}
+      </CatalogShell>
     </div>
-  );
-}
-
-function FilterLink({ label, href, active }: { label: string; href: string; active: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={
-        active
-          ? "inline-flex h-8 shrink-0 items-center rounded-full bg-gold px-3 text-sm font-bold whitespace-nowrap text-ink transition-colors duration-150"
-          : "inline-flex h-8 shrink-0 items-center rounded-full bg-charcoal px-3 text-sm whitespace-nowrap text-mist transition-colors duration-150 hover:text-paper"
-      }
-    >
-      {label}
-    </Link>
   );
 }

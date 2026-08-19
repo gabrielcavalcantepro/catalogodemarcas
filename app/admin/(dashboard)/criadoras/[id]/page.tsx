@@ -13,7 +13,7 @@ export default async function EditarCriadoraPage({
   if (!creator) notFound();
 
   return (
-    <div>
+    <div className="mx-auto max-w-md">
       <h1 className="font-display text-heading-md text-paper">Editar criadora</h1>
       <div className="mt-6">
         <CreatorForm
