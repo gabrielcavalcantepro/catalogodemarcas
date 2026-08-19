@@ -542,3 +542,54 @@ com a página de detalhe que já mostrava nos dois casos):
   `useActionState`). Trocar pra `REDIRECT_TIKTOK_SHOP` exige que o
   produto já tenha `tiktokShopUrl` configurado — a edição rápida não pede
   esse campo inline, só a tela de Editar completa faz isso.
+
+Depois disso: segundo lote de feedback, ainda em cima da página de
+detalhe do produto e formulários do admin.
+- **Formulários do admin não centralizavam dentro do wrapper novo** — o
+  `mx-auto max-w-7xl` do layout centraliza um container largo, mas
+  `product-form.tsx`/`brand-form.tsx`/`creator-form.tsx` têm seu próprio
+  `max-w-xl`/`max-w-md` SEM `mx-auto` — um elemento mais estreito dentro
+  de um pai já centralizado não herda centralização, só encosta na
+  esquerda dele por padrão. As 3 formulários ganharam `mx-auto` também.
+  Isso não afeta `ResponsiveTable` (sem max-width próprio, já ocupa a
+  largura toda do wrapper).
+- **`components/product-gallery.tsx`** (novo, client component) —
+  substitui a galeria estática (foto principal fixa + miniaturas mortas)
+  por navegação de verdade: setas (lucide `ChevronLeft`/`ChevronRight`)
+  trocam a foto principal, miniaturas viram botões clicáveis (a
+  selecionada tem `ring-2 ring-gold`). Usado só na página de detalhe —
+  `ProductCard` continua com a foto única estática, que é intencional
+  (card de grade não precisa de galeria).
+- **`components/expandable-description.tsx`** (novo, client component) —
+  trunca com `line-clamp-6` + botão "Ver mais"/"Ver menos" quando o texto
+  passa de 280 caracteres (`TRUNCATE_THRESHOLD`). A página de detalhe
+  também normaliza a descrição antes de passar pro componente
+  (`description.replace(/\n{3,}/g, "\n\n")`) — a equipe às vezes cola
+  descrição com parágrafos separados por mais de uma linha em branco, e
+  como `whitespace-pre-line` preserva cada `\n` literal, isso virava um
+  "espaço duplo" visível entre parágrafos. Observação à parte, não
+  corrigida (arriscado demais corrigir por heurística): algumas
+  descrições reais têm frases coladas sem espaço nenhum entre elas (ex.:
+  "...silhuetaModelagem pensada...") — é a própria string salva assim no
+  banco, não um bug de renderização; não dá pra saber com segurança onde
+  inserir o espaço faltante sem risco de quebrar uma palavra legítima.
+- **Página de detalhe do produto** — três ajustes de escala depois do uso
+  real: (1) container passou de `max-w-[640px]` pra `max-w-4xl`, igual ao
+  header (`app/(public)/layout.tsx`) — antes ficava visivelmente mais
+  estreito que o cabeçalho da própria página; a home já usava `max-w-4xl`
+  herdado do layout, não precisou mudar. (2) título/preço/comissão
+  vieram de `font-display text-heading-md`/`text-heading-sm` (28px/20px,
+  tokens de display heading) pra `text-xl md:text-2xl`/`text-lg`/`text-sm`
+  — os tokens de heading são grandes demais pra esse contexto (só fazem
+  sentido pra título de página, não pra texto dentro de um card de
+  preço). (3) botão "Voltar ao catálogo" ganhou ícone (`ArrowLeft`) e
+  weight/transição consistentes com o resto do design system, em vez de
+  só texto sublinhado no hover.
+- **`duplicateProduct` não copia mais `photoUrls`** — o pedido original
+  (fase anterior) reaproveitava as fotos do original; uso real mostrou
+  que isso não faz sentido — duplicar serve pra criar uma variante
+  parecida (cor/modelo diferente), e a foto é justamente o que mais muda
+  entre elas. Agora a cópia sempre nasce com `photoUrls: []`, e o
+  formulário de edição já lida com isso sozinho (mostra "Nenhuma foto
+  ainda.", sem checkbox de remover fantasma) — nenhuma mudança extra
+  precisou em `product-form.tsx`.

@@ -1,9 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCreatorId } from "@/lib/auth/creator";
 import { SampleRequestControl } from "@/components/sample-request-control";
+import { ProductGallery } from "@/components/product-gallery";
+import { ExpandableDescription } from "@/components/expandable-description";
 import { formatBRL } from "@/lib/format";
 
 export default async function ProdutoPage({
@@ -28,46 +30,28 @@ export default async function ProdutoPage({
   });
 
   const hasFlash = product.flashPrice != null;
+  // O admin às vezes cola descrição com parágrafos separados por mais de
+  // uma linha em branco — normaliza pra no máximo uma (o dobro virava
+  // "espaço duplo" visível, já que whitespace-pre-line preserva cada \n).
+  const description = product.description.replace(/\n{3,}/g, "\n\n");
 
   return (
-    <div className="mx-auto max-w-[640px] pb-32 md:pb-0">
-      <Link href="/" className="text-sm text-mist hover:text-gold">
-        ← Voltar ao catálogo
+    <div className="mx-auto max-w-4xl pb-32 md:pb-0">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-mist transition-colors duration-150 hover:text-gold"
+      >
+        <ArrowLeft size={16} strokeWidth={2} />
+        Voltar ao catálogo
       </Link>
 
       <div className="mt-4 grid grid-cols-1 gap-8 md:grid-cols-2">
-        <div className="space-y-3">
-          <div className="relative aspect-square w-full overflow-hidden rounded-[20px] bg-mat">
-            {product.photoUrls[0] ? (
-              <Image
-                src={product.photoUrls[0]}
-                alt={product.name}
-                fill
-                sizes="(max-width: 768px) 100vw, 320px"
-                priority
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-ink/40">
-                Sem foto
-              </div>
-            )}
-          </div>
-          {product.photoUrls.length > 1 && (
-            <div className="grid grid-cols-4 gap-3">
-              {product.photoUrls.slice(1).map((url) => (
-                <div key={url} className="relative aspect-square overflow-hidden rounded-[10px] bg-mat">
-                  <Image src={url} alt={product.name} fill sizes="25vw" className="object-cover" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductGallery photoUrls={product.photoUrls} alt={product.name} />
 
         <div>
           <span className="text-caption text-mist">{product.brand.name}</span>
-          <h1 className="mt-1 font-display text-heading-md text-paper">{product.name}</h1>
-          <p className="mt-3 whitespace-pre-line text-sm text-mist">{product.description}</p>
+          <h1 className="mt-1 font-display text-xl text-paper md:text-2xl">{product.name}</h1>
+          <ExpandableDescription text={description} />
 
           {product.differentials.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -85,12 +69,12 @@ export default async function ProdutoPage({
           <div className="mt-5 rounded-[20px] bg-charcoal p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
             <div className="flex items-baseline justify-between">
               <span className="text-sm text-mist">Preço de vitrine</span>
-              <span className="font-display text-heading-sm text-paper">
+              <span className="text-lg font-bold text-paper">
                 {formatBRL(Number(product.showcasePrice))}
               </span>
             </div>
             {!hasFlash && (
-              <div className="mt-1 text-right font-display text-heading-sm text-gold">
+              <div className="mt-1 text-right text-sm font-semibold text-gold">
                 {Number(product.showcaseCommissionPercent)}% de comissão
               </div>
             )}
@@ -99,11 +83,11 @@ export default async function ProdutoPage({
               <div className="mt-3 border-t border-graphite pt-3">
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm text-mist">Preço de oferta relâmpago</span>
-                  <span className="font-display text-heading-sm text-gold">
+                  <span className="text-lg font-bold text-gold">
                     {formatBRL(Number(product.flashPrice))}
                   </span>
                 </div>
-                <div className="mt-1 text-right font-display text-heading-sm text-gold">
+                <div className="mt-1 text-right text-sm font-semibold text-gold">
                   {Number(product.flashCommissionPercent)}% de comissão
                 </div>
               </div>

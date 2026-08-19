@@ -31,7 +31,7 @@ export function BrandForm({
   }
 
   return (
-    <form action={formAction} className="max-w-md">
+    <form action={formAction} className="mx-auto max-w-md">
       <Field>
         <Label htmlFor="name">Nome da marca</Label>
         <Input id="name" name="name" defaultValue={defaultValues?.name} required />

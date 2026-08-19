@@ -17,7 +17,7 @@ export function CreatorForm({
   const isEditing = !!defaultValues;
 
   return (
-    <form action={formAction} className="max-w-md">
+    <form action={formAction} className="mx-auto max-w-md">
       <Field>
         <Label htmlFor="tiktokHandle">@ do TikTok</Label>
         <Input

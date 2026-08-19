@@ -56,7 +56,7 @@ export function ProductForm({
   }
 
   return (
-    <form action={formAction} className="max-w-xl">
+    <form action={formAction} className="mx-auto max-w-xl">
       <Field>
         <Label htmlFor="brandId">Marca</Label>
         <FormSelect

@@ -226,9 +226,11 @@ export async function duplicateProduct(formData: FormData) {
   const existing = await prisma.product.findUnique({ where: { id: productId } });
   if (!existing) return;
 
-  // Reaproveita as fotos já hospedadas (mesma URL, sem re-upload) — inativo
-  // por padrão pra não aparecer na vitrine com nome/preço idênticos ao
-  // original até a equipe revisar e ajustar o que for diferente.
+  // Sem fotos de propósito — duplicar serve pra criar uma variante
+  // parecida (outra cor, outro modelo), e a foto é justamente o que mais
+  // muda entre elas. Reaproveitar a mesma imagem do original só criaria
+  // confusão. Inativo por padrão pra não aparecer na vitrine com
+  // nome/preço idênticos ao original até a equipe revisar e completar.
   const duplicate = await prisma.product.create({
     data: {
       brandId: existing.brandId,
@@ -239,7 +241,7 @@ export async function duplicateProduct(formData: FormData) {
       showcaseCommissionPercent: existing.showcaseCommissionPercent,
       flashPrice: existing.flashPrice,
       flashCommissionPercent: existing.flashCommissionPercent,
-      photoUrls: existing.photoUrls,
+      photoUrls: [],
       requestBehavior: existing.requestBehavior,
       tiktokShopUrl: existing.tiktokShopUrl,
       active: false,
