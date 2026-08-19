@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { saveUploadedImage } from "@/lib/storage";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 
 const priceField = (label: string) =>
   z.coerce.number().min(0, `O ${label} não pode ser negativo.`);
@@ -65,6 +66,20 @@ function parseDifferentials(raw: FormDataEntryValue | null): string[] {
 
 async function saveNewPhotos(formData: FormData): Promise<string[]> {
   const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+
+  // Cada arquivo já é validado individualmente em saveUploadedImage, mas o
+  // input aceita múltiplos — várias fotos dentro do limite cada uma podem
+  // somar mais do que a Server Action consegue receber (ver
+  // lib/upload-limits.ts). Sem essa checagem, o envio nem chega aqui: a
+  // requisição é rejeitada antes (413 na Vercel, ou o erro genérico do
+  // Next se bodySizeLimit for excedido), então isso é defesa em
+  // profundidade — a checagem que realmente evita o crash é a validação
+  // no client, em product-form.tsx.
+  const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+  if (totalSize > MAX_UPLOAD_BYTES) {
+    throw new Error(`O total das fotos enviadas passa de ${MAX_UPLOAD_LABEL}. Envie menos fotos ou arquivos menores.`);
+  }
+
   const urls: string[] = [];
   for (const file of files) {
     urls.push(await saveUploadedImage(file));
@@ -167,4 +182,35 @@ export async function deleteProduct(formData: FormData) {
   await prisma.product.delete({ where: { id: productId } });
   revalidatePath("/admin/produtos");
   revalidatePath("/");
+}
+
+export async function duplicateProduct(formData: FormData) {
+  const productId = String(formData.get("productId") ?? "");
+  if (!productId) return;
+
+  const existing = await prisma.product.findUnique({ where: { id: productId } });
+  if (!existing) return;
+
+  // Reaproveita as fotos já hospedadas (mesma URL, sem re-upload) — inativo
+  // por padrão pra não aparecer na vitrine com nome/preço idênticos ao
+  // original até a equipe revisar e ajustar o que for diferente.
+  const duplicate = await prisma.product.create({
+    data: {
+      brandId: existing.brandId,
+      name: `${existing.name} (cópia)`,
+      description: existing.description,
+      differentials: existing.differentials,
+      showcasePrice: existing.showcasePrice,
+      showcaseCommissionPercent: existing.showcaseCommissionPercent,
+      flashPrice: existing.flashPrice,
+      flashCommissionPercent: existing.flashCommissionPercent,
+      photoUrls: existing.photoUrls,
+      requestBehavior: existing.requestBehavior,
+      tiktokShopUrl: existing.tiktokShopUrl,
+      active: false,
+    },
+  });
+
+  revalidatePath("/admin/produtos");
+  redirect(`/admin/produtos/${duplicate.id}?toast=${encodeURIComponent("Produto duplicado como inativo. Ajuste os campos e salve.")}`);
 }

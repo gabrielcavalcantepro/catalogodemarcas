@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 
 // service role key só é lida aqui — módulo "server-only" (build falha se
 // algum "use client" importar isso) e sem prefixo NEXT_PUBLIC_, então
@@ -10,7 +11,6 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
 const BUCKET = "product-photos";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
-const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 /**
  * Adaptador de storage para fotos de marca/produto — Supabase Storage,
@@ -21,8 +21,8 @@ export async function saveUploadedImage(file: File): Promise<string> {
   if (!ALLOWED_TYPES.has(file.type)) {
     throw new Error("Tipo de arquivo não suportado. Envie JPEG, PNG, WEBP ou AVIF.");
   }
-  if (file.size > MAX_SIZE_BYTES) {
-    throw new Error("Arquivo muito grande. O limite é 5MB.");
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`Arquivo muito grande. O limite é ${MAX_UPLOAD_LABEL}.`);
   }
 
   const ext = file.type.split("/")[1];

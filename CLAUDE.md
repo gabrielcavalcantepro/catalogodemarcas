@@ -309,6 +309,36 @@ Admin (protegido por [`proxy.ts`](./proxy.ts), que substitui o antigo
   upload real, fetch da URL pública (200, content-type de imagem), e o
   fluxo real do app (criar Marca com foto pelo admin, ver a foto renderizar
   via `next/image`) — arquivo de teste removido do bucket depois.
+- **Limite de tamanho de upload — Server Actions x teto de infraestrutura
+  da Vercel**: primeiro uso real do formulário de Produto em produção
+  quebrou ao salvar com foto — 500 no console e "Minified React error
+  #441" (que decodifica pra "erro no render de Server Components", sem
+  detalhe em produção). Log do servidor (só aparece rodando `next start`
+  local, não no navegador) mostrou a causa real: `Error: Body exceeded 1
+  MB limit` — Server Actions no Next.js têm um limite padrão de 1MB no
+  corpo da requisição, e uma foto de produto real passa disso fácil. Não
+  dá pra simplesmente aumentar esse limite à vontade: a Vercel impõe um
+  teto de infraestrutura de 4.5MB pra Serverless Functions que **não é
+  configurável** (acima disso o pedido nem chega no Next, vira 413 antes).
+  Corrigido em três camadas, já que o formulário aceita múltiplas fotos e
+  nada somava o total antes: `next.config.ts` define
+  `experimental.serverActions.bodySizeLimit = "4mb"` (com folga do teto da
+  Vercel); `lib/upload-limits.ts` (novo, sem `server-only` — precisa ser
+  importável tanto pelas actions quanto pelos client components dos
+  formulários) centraliza `MAX_UPLOAD_BYTES = 3.5MB`, usado por
+  `lib/storage.ts` (checagem por arquivo) e por `saveNewPhotos` em
+  `produtos/actions.ts` (checagem da SOMA de todos os arquivos de um
+  envio — um por um dentro do limite ainda pode estourar somado). Como
+  essas duas checagens já chegam tarde (o corpo da requisição só chega no
+  código depois de passar pelo teto configurado), `product-form.tsx` e
+  `brand-form.tsx` também validam no `onChange` do input de arquivo e
+  desabilitam o botão de salvar — é a única camada que realmente evita a
+  tela de erro genérica, as outras são defesa em profundidade. Verificado
+  reproduzindo o crash exato (arquivo de 2.1MB, mesmo texto de erro do
+  usuário) contra `next build && next start` local, confirmando o fix (o
+  mesmo arquivo passa a salvar normalmente) e o guard client-side
+  (arquivo de 5MB+ bloqueado antes do submit, com mensagem clara, sem
+  nenhuma requisição disparada).
 - **Ambiente**: o projeto já foi movido uma vez de uma pasta sincronizada
   pelo Google Drive (não é volume NTFS de verdade lá — `mklink /J` falha,
   `node_modules`/`.next` ficavam extremamente lentos). Evitar recolocar o
@@ -434,3 +464,21 @@ Vercel (configurar as env vars lá, confirmar que `next build` não tenta
 rodar migration sozinho — já não roda, mas vale conferir no primeiro
 deploy) e qualquer refinamento de UX que o usuário pedir depois de usar o
 painel de verdade.
+
+Depois disso: deploy real na Vercel — env vars configuradas no painel do
+projeto, `postinstall: prisma generate` adicionado (`generated/prisma` é
+gitignored e não existe num clone limpo). Primeiro uso real em produção
+revelou dois bugs que nunca apareciam localmente (`next dev` não expõe
+nenhum dos dois — só build/produção): o cache estático do App Router
+servindo o admin desatualizado (ver armadilha acima) e o limite de 1MB de
+Server Actions estourando ao salvar produto com foto (ver armadilha
+"Limite de tamanho de upload" acima). Os dois corrigidos e verificados
+contra `next build && next start` local antes de subir, já que só assim
+esses bugs reproduzem. Também adicionados nessa rodada: coluna "Perfil"
+em Criadoras com link direto pro TikTok (`https://www.tiktok.com/@` +
+`tiktokHandle`, sem precisar de campo novo) e duplicar produto (botão
+"Duplicar" em `/admin/produtos` → `duplicateProduct` em
+`produtos/actions.ts` cria uma cópia com nome + " (cópia)", mesmas fotos
+(reaproveita as URLs, sem re-upload), `active: false` por padrão pra não
+aparecer na vitrine idêntica ao original até a equipe revisar, e
+redireciona direto pra tela de edição da cópia).

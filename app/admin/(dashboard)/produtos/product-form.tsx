@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Image from "next/image";
 import { Button, ErrorText, Field, Input, Label, Textarea } from "@/components/ui";
 import { FormSelect } from "@/components/form-select";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 import type { ProductFormState } from "./actions";
 
 const initialState: ProductFormState = {};
@@ -34,6 +35,16 @@ export function ProductForm({
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [behavior, setBehavior] = useState(defaultValues?.requestBehavior ?? "NOTIFY_TEAM");
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  function handlePhotosChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const totalSize = Array.from(e.target.files ?? []).reduce((sum, f) => sum + f.size, 0);
+    setPhotoError(
+      totalSize > MAX_UPLOAD_BYTES
+        ? `As fotos selecionadas somam mais de ${MAX_UPLOAD_LABEL}. Escolha menos fotos ou arquivos menores.`
+        : null,
+    );
+  }
 
   return (
     <form action={formAction} className="max-w-xl">
@@ -194,7 +205,15 @@ export function ProductForm({
 
       <Field>
         <Label htmlFor="photos">{defaultValues ? "Adicionar fotos" : "Fotos"}</Label>
-        <Input id="photos" name="photos" type="file" accept="image/png,image/jpeg,image/webp,image/avif" multiple />
+        <Input
+          id="photos"
+          name="photos"
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/avif"
+          multiple
+          onChange={handlePhotosChange}
+        />
+        <ErrorText>{photoError}</ErrorText>
       </Field>
 
       {defaultValues && (
@@ -207,7 +226,7 @@ export function ProductForm({
       )}
 
       <ErrorText>{state.error}</ErrorText>
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || !!photoError}>
         {pending ? "Salvando..." : "Salvar"}
       </Button>
     </form>

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Copy } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ResponsiveTable, type ResponsiveTableColumn } from "@/components/responsive-table";
 import { formatBRL } from "@/lib/format";
-import { deleteProduct } from "./actions";
+import { deleteProduct, duplicateProduct } from "./actions";
 
 type ProductRow = Awaited<ReturnType<typeof getProducts>>[number];
 
@@ -68,6 +68,13 @@ export default async function ProdutosPage({
               Editar
             </Button>
           </Link>
+          <form action={duplicateProduct}>
+            <input type="hidden" name="productId" value={p.id} />
+            <Button type="submit" variant="secondary">
+              <Copy size={16} strokeWidth={1.75} />
+              Duplicar
+            </Button>
+          </form>
           <form action={deleteProduct}>
             <input type="hidden" name="productId" value={p.id} />
             <ConfirmSubmitButton confirmMessage={`Excluir o produto "${p.name}"?`}>

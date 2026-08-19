@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Image from "next/image";
 import { Button, ErrorText, Field, Input, Label } from "@/components/ui";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 import type { BrandFormState } from "./actions";
 
 const initialState: BrandFormState = {};
@@ -15,6 +16,14 @@ export function BrandForm({
   defaultValues?: { name: string; defaultSampleLimit: number; logoUrl: string | null };
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    setLogoError(
+      file && file.size > MAX_UPLOAD_BYTES ? `O arquivo passa de ${MAX_UPLOAD_LABEL}. Escolha um arquivo menor.` : null,
+    );
+  }
 
   return (
     <form action={formAction} className="max-w-md">
@@ -46,10 +55,17 @@ export function BrandForm({
             />
           </div>
         )}
-        <Input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/avif" />
+        <Input
+          id="logo"
+          name="logo"
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/avif"
+          onChange={handleLogoChange}
+        />
+        <ErrorText>{logoError}</ErrorText>
       </Field>
       <ErrorText>{state.error}</ErrorText>
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || !!logoError}>
         {pending ? "Salvando..." : "Salvar"}
       </Button>
     </form>
