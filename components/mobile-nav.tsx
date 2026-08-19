@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, LayoutGrid, ClipboardList, CircleUserRound } from "lucide-react";
+import { Menu, X, LayoutGrid, ClipboardList, CircleUserRound, LogOut } from "lucide-react";
+import { logoutCreator } from "@/app/(public)/actions";
 
 export function MobileNav({ tiktokHandle }: { tiktokHandle: string }) {
   const [open, setOpen] = useState(false);
@@ -40,6 +41,15 @@ export function MobileNav({ tiktokHandle }: { tiktokHandle: string }) {
           <div className="mt-1 flex items-center gap-2 border-t border-graphite px-3 pt-3 text-sm text-mist">
             <CircleUserRound size={18} strokeWidth={1.75} />@{tiktokHandle}
           </div>
+          <form action={logoutCreator} className="mt-1 border-t border-graphite pt-1">
+            <button
+              type="submit"
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2.5 text-left text-sm text-mist transition-colors duration-150 hover:bg-ink hover:text-paper"
+            >
+              <LogOut size={18} strokeWidth={1.75} />
+              Sair
+            </button>
+          </form>
         </div>
       )}
     </div>

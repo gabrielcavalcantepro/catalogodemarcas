@@ -7,20 +7,33 @@ datasource db {
   provider = "postgresql"
 }
 
-// Criadora de conteúdo, sem senha. Acesso via allowlist (§5.1/§6.3): a
-// equipe cadastra só o tiktokHandle antes; name e email ficam null até ela
-// completar o Registro público, quando ela mesma escolhe o email (ver
-// app/(public)/actions.ts).
+// Criadora de conteúdo, sem senha. Acesso via allowlist (§5.1/§6.3) SE
+// Settings.catalogLocked estiver true (padrão) — a equipe cadastra só o
+// tiktokHandle antes; name e email ficam null até ela completar o
+// Registro público, quando ela mesma escolhe o email (ver
+// app/(public)/actions.ts). Com o catálogo destrancado, registerCreator
+// cria a linha na hora (com approved: false) em vez de exigir uma linha
+// pré-existente — approved distingue esse caso de todo o resto (allowlist
+// tradicional, seja já registrada ou ainda aguardando o Registro, sempre
+// nasce approved: true) porque "tem name/email" sozinho não basta mais
+// pra saber se precisa de aprovação do admin.
 model Creator {
   id           String   @id @default(cuid())
   name         String?
   email        String?  @unique
   tiktokHandle String   @unique
+  approved     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   sampleRequests SampleRequest[]
   brandLimits    CreatorBrandLimit[]
   contentPosts   ContentPost[]
+}
+
+// Configuração global única (linha fixa id=1, ver lib/settings.ts).
+model Settings {
+  id            Int     @id @default(1)
+  catalogLocked Boolean @default(true)
 }
 
 // Marca parceira.

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
-import { getCreatorId, setCreatorSession } from "@/lib/auth/creator";
+import { getCreatorId, setCreatorSession, clearCreatorSession } from "@/lib/auth/creator";
+import { isCatalogLocked } from "@/lib/settings";
 import { normalizeEmail, normalizeTiktokHandle } from "@/lib/validation/creator";
 
 const loginSchema = z.object({
@@ -25,10 +26,17 @@ export type AuthState = {
   error?: string;
 };
 
-// Registro (primeiro acesso, §3/§6.3): só aceito se o @ bater com um
-// cadastro que a equipe já fez em /admin/criadoras — o e-mail não faz
-// parte desse cadastro prévio, é escolhido pela própria criadora aqui e
-// passa a ser exigido (junto com o @) em todo login seguinte.
+// Registro (primeiro acesso, §3/§6.3): com o catálogo trancado (padrão),
+// só aceito se o @ bater com um cadastro que a equipe já fez em
+// /admin/criadoras — o e-mail não faz parte desse cadastro prévio, é
+// escolhido pela própria criadora aqui e passa a ser exigido (junto com
+// o @) em todo login seguinte. Com o catálogo destrancado (toggle em
+// /admin/criadoras), qualquer @ pode se registrar na hora — a linha nasce
+// com approved: false, aparece como "Aguardando aprovação" pro admin, e
+// só um clique em "Aprovar" tira esse status; a aprovação é só
+// organizacional (a equipe saber quem entrou sozinha), não bloqueia o
+// acesso — a criadora já loga normalmente assim que se registra, igual
+// ao fluxo tradicional.
 export async function registerCreator(
   _prevState: AuthState,
   formData: FormData,
@@ -44,17 +52,27 @@ export async function registerCreator(
   const { name, email, tiktokHandle } = parsed.data;
 
   const creator = await prisma.creator.findFirst({ where: { tiktokHandle } });
-  if (!creator) {
-    return {
-      error: "@ não encontrado. Peça para a equipe X Performance te cadastrar antes de acessar.",
-    };
-  }
-  if (creator.name) {
+
+  if (creator?.name) {
     return { error: "Esse cadastro já foi registrado. Use a tela de login." };
   }
 
+  let creatorId: string;
   try {
-    await prisma.creator.update({ where: { id: creator.id }, data: { name, email } });
+    if (creator) {
+      await prisma.creator.update({ where: { id: creator.id }, data: { name, email } });
+      creatorId = creator.id;
+    } else {
+      if (await isCatalogLocked()) {
+        return {
+          error: "@ não encontrado. Peça para a equipe X Performance te cadastrar antes de acessar.",
+        };
+      }
+      const created = await prisma.creator.create({
+        data: { tiktokHandle, name, email, approved: false },
+      });
+      creatorId = created.id;
+    }
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       return { error: "Esse e-mail já está sendo usado por outra criadora." };
@@ -62,8 +80,13 @@ export async function registerCreator(
     throw e;
   }
 
-  await setCreatorSession(creator.id);
+  await setCreatorSession(creatorId);
   revalidatePath("/", "layout");
+  redirect("/");
+}
+
+export async function logoutCreator() {
+  await clearCreatorSession();
   redirect("/");
 }
 

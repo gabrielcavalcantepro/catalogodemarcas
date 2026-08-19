@@ -63,10 +63,20 @@ abaixo pra explicação técnica completa):
 
 - **Creator** — `tiktokHandle` (`@unique`, sem senha) é a allowlist: a
   equipe cadastra só esse campo em `/admin/criadoras` antes da criadora
-  poder acessar (spec §5.1/§6.3). `name` e `email` (também `@unique`) ficam
-  `null` até ela completar o Registro público — é ela quem escolhe o
-  próprio e-mail nesse momento, não a equipe. Presença de `name`/`email` é
-  o sinal de "já registrada" (não existe campo de status separado).
+  poder acessar (spec §5.1/§6.3), SE `Settings.catalogLocked` for true
+  (padrão). `name` e `email` (também `@unique`) ficam `null` até ela
+  completar o Registro público — é ela quem escolhe o próprio e-mail
+  nesse momento, não a equipe. Presença de `name`/`email` sozinha não
+  basta mais como sinal de "já registrada" (era assim antes do toggle de
+  catálogo destrancado existir): `approved` (`@default(true)`) distingue
+  cadastro tradicional (allowlist, sempre `approved: true`, com ou sem
+  `name` ainda) de auto-registro com catálogo destrancado (`registerCreator`
+  cria a linha na hora com `approved: false` quando não acha nenhuma linha
+  pré-existente pra aquele `tiktokHandle`). Três estados possíveis na UI
+  do admin: sem `name` = "Aguardando registro"; `name` + `!approved` =
+  "Aguardando aprovação" (mostra botão "Aprovar"); `name` + `approved` =
+  "Registrada". A aprovação é só organizacional — não bloqueia acesso, a
+  criadora já loga normal assim que se registra.
 - **Brand** — marca parceira; `defaultSampleLimit` é o limite padrão de
   amostras por criadora nova (spec §6.2)
 - **Product** — vinculado a `Brand`; `requestBehavior`
@@ -112,6 +122,11 @@ abaixo pra explicação técnica completa):
 - **ContentPost** — divulgação (substitui a planilha de UGC): criadora +
   marca (obrigatório, para a contagem agregada por marca) + produto
   (opcional) + tipo + data + link.
+- **Settings** — linha única fixa (`id` sempre `1`, `@default(1)` no Int
+  força isso), lida/escrita via `lib/settings.ts`
+  (`isCatalogLocked`/`setCatalogLocked`, sempre `upsert` — não depende de
+  seed/migration de dado pra a linha existir na primeira leitura).
+  `catalogLocked` (`@default(true)`) é o único campo até agora.
 
 ## Rotas
 
@@ -653,3 +668,29 @@ de alinhamento no admin.
   `criadoras/[id]`), removendo o `mx-auto` que tinha ficado só no
   `<form>` dos 3 componentes de formulário (agora herdam a largura do
   wrapper da página).
+
+Depois disso: catálogo destrancável. Toggle "Catálogo trancado" em
+`/admin/criadoras` (`Settings.catalogLocked`, ver "Modelo de dados"
+acima) — trancado (padrão) mantém o comportamento allowlist original;
+destrancado permite `registerCreator` criar a linha do Creator na hora
+pra qualquer `@`, com `approved: false`. Isso trouxe um bug que já
+existia mas nunca importava até agora: `deleteCreator` sempre apagou a
+linha do banco, mas `getCreatorId()` (`lib/auth/creator.ts`) só validava
+a assinatura do cookie, nunca conferia se a linha ainda existia — então
+excluir uma criadora que já tinha sessão salva não derrubava o acesso
+dela de verdade (o cookie assinado continuava "válido", só o registro
+sumia, e as páginas públicas simplesmente tratavam como uma criadora sem
+histórico, não como deslogada). Corrigido fazendo `getCreatorId()`
+confirmar a existência da linha no banco antes de devolver o id — sem
+isso, "perde login do catálogo" ao excluir (comportamento pedido
+explicitamente) não acontecia de verdade pra sessões já abertas.
+Verificado em Playwright contra `next build && next start`: registro com
+`@` desconhecido é recusado com o catálogo trancado, aceito e loga na
+hora quando destrancado, aparece "Aguardando aprovação" com botão
+"Aprovar" em `/admin/criadoras`, aprovar limpa o badge, excluir de fato
+desloga uma sessão já aberta (testado com o mesmo browser context: perde
+acesso, reloga se destrancado). "Sair" (logout) também ficou faltando no
+catálogo até agora — `logoutCreator` (`app/(public)/actions.ts`, só
+`clearCreatorSession` + redirect) adicionado no menu mobile
+(`components/mobile-nav.tsx`) e no header desktop
+(`app/(public)/layout.tsx`), os dois só apareciam pra criadora logada.

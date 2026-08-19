@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
+import { setCatalogLocked } from "@/lib/settings";
 import { normalizeEmail, normalizeTiktokHandle } from "@/lib/validation/creator";
 
 // Cadastro pela equipe (allowlist, §5.1) só precisa do @ — nome e e-mail
@@ -109,5 +110,20 @@ export async function deleteCreator(formData: FormData) {
   const creatorId = String(formData.get("creatorId") ?? "");
   if (!creatorId) return;
   await prisma.creator.delete({ where: { id: creatorId } });
+  revalidatePath("/admin/criadoras");
+}
+
+// Só organizacional — não afeta acesso. A criadora que se registrou
+// sozinha (catálogo destrancado) já loga e navega normalmente antes
+// disso; "Aprovar" só marca que a equipe já olhou o cadastro.
+export async function approveCreator(formData: FormData) {
+  const creatorId = String(formData.get("creatorId") ?? "");
+  if (!creatorId) return;
+  await prisma.creator.update({ where: { id: creatorId }, data: { approved: true } });
+  revalidatePath("/admin/criadoras");
+}
+
+export async function updateCatalogLocked(locked: boolean) {
+  await setCatalogLocked(locked);
   revalidatePath("/admin/criadoras");
 }

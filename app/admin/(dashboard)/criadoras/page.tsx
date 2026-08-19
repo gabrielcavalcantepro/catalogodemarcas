@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Plus, Pencil, ExternalLink } from "lucide-react";
+import { Plus, Pencil, ExternalLink, Check } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { isCatalogLocked } from "@/lib/settings";
 import { Button } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ResponsiveTable, type ResponsiveTableColumn } from "@/components/responsive-table";
-import { deleteCreator } from "./actions";
+import { CatalogLockToggle } from "./catalog-lock-toggle";
+import { deleteCreator, approveCreator } from "./actions";
 
 type CreatorRow = Awaited<ReturnType<typeof getCreators>>[number];
 
@@ -13,7 +15,7 @@ async function getCreators() {
 }
 
 export default async function CriadorasPage() {
-  const creators = await getCreators();
+  const [creators, catalogLocked] = await Promise.all([getCreators(), isCatalogLocked()]);
 
   const columns: ResponsiveTableColumn<CreatorRow>[] = [
     { header: "@ TikTok", cell: (c) => `@${c.tiktokHandle}` },
@@ -32,14 +34,23 @@ export default async function CriadorasPage() {
     { header: "E-mail", cell: (c) => c.email ?? "—" },
     {
       header: "Status",
-      cell: (c) =>
-        c.name ? (
-          <span className="text-xs text-mist">Registrada</span>
-        ) : (
-          <span className="rounded-full bg-gold/15 px-2 py-1 text-xs font-medium text-gold">
-            Aguardando registro
-          </span>
-        ),
+      cell: (c) => {
+        if (!c.name) {
+          return (
+            <span className="rounded-full bg-gold/15 px-2 py-1 text-xs font-medium text-gold">
+              Aguardando registro
+            </span>
+          );
+        }
+        if (!c.approved) {
+          return (
+            <span className="rounded-full bg-gold/15 px-2 py-1 text-xs font-medium text-gold">
+              Aguardando aprovação
+            </span>
+          );
+        }
+        return <span className="text-xs text-mist">Registrada</span>;
+      },
     },
     {
       header: "Cadastrada em",
@@ -55,10 +66,19 @@ export default async function CriadorasPage() {
               Editar
             </Button>
           </Link>
+          {c.name && !c.approved && (
+            <form action={approveCreator}>
+              <input type="hidden" name="creatorId" value={c.id} />
+              <Button type="submit" variant="secondary">
+                <Check size={16} strokeWidth={1.75} />
+                Aprovar
+              </Button>
+            </form>
+          )}
           <form action={deleteCreator}>
             <input type="hidden" name="creatorId" value={c.id} />
             <ConfirmSubmitButton
-              confirmMessage={`Excluir a criadora "${c.name ?? c.tiktokHandle}"? Isso remove também o histórico de solicitações, limites e divulgações dela.`}
+              confirmMessage={`Excluir a criadora "${c.name ?? c.tiktokHandle}"? Isso remove também o histórico de solicitações, limites e divulgações dela${c.name ? " e ela perde o acesso ao catálogo" : ""}.`}
             >
               Excluir
             </ConfirmSubmitButton>
@@ -80,10 +100,13 @@ export default async function CriadorasPage() {
         </Link>
       </div>
       <p className="mt-1 text-sm text-mist">
-        Cadastre o @ do TikTok antes da criadora acessar — sem essa linha
-        aqui, o registro público dela é recusado. Nome e e-mail são
+        Cadastre o @ do TikTok antes da criadora acessar. Nome e e-mail são
         preenchidos por ela mesma no registro.
       </p>
+
+      <div className="mt-4">
+        <CatalogLockToggle initialValue={catalogLocked} />
+      </div>
 
       {creators.length === 0 ? (
         <p className="mt-12 text-mist">Nenhuma criadora cadastrada ainda.</p>

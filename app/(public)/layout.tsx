@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { LayoutGrid, ClipboardList, CircleUserRound } from "lucide-react";
+import { LayoutGrid, ClipboardList, CircleUserRound, LogOut } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { MobileNav } from "@/components/mobile-nav";
 import { getCreatorId } from "@/lib/auth/creator";
 import { prisma } from "@/lib/db";
+import { logoutCreator } from "./actions";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const creatorId = await getCreatorId();
@@ -33,10 +34,20 @@ export default async function PublicLayout({ children }: { children: React.React
                 <ClipboardList size={18} strokeWidth={1.75} />
                 Minhas Solicitações
               </Link>
-              <span className="ml-1 flex items-center gap-1.5 border-l border-graphite pl-4 text-mist">
+              <span className="ml-1 hidden items-center gap-1.5 border-l border-graphite pl-4 text-mist md:flex">
                 <CircleUserRound size={18} strokeWidth={1.75} />
                 @{creator.tiktokHandle}
               </span>
+              <form action={logoutCreator} className="hidden md:block">
+                <button
+                  type="submit"
+                  aria-label="Sair"
+                  className="flex items-center gap-2 text-mist transition-colors duration-150 hover:text-gold"
+                >
+                  <LogOut size={18} strokeWidth={1.75} />
+                  Sair
+                </button>
+              </form>
             </nav>
           )}
         </div>
