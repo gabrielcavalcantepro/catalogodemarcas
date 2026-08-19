@@ -55,22 +55,26 @@ export function ProductCard({
             </div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-mist">Oferta</span>
-              <span className="flex items-baseline gap-1.5">
-                <span className="text-base font-bold text-gold">
-                  {formatBRL(Number(product.flashPrice))}
-                </span>
-                <span className="text-xs font-semibold text-gold">
-                  {Number(product.flashCommissionPercent)}%
-                </span>
+              <span className="text-base font-bold text-gold">
+                {formatBRL(Number(product.flashPrice))}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs text-mist">Comissão</span>
+              <span className="text-xs font-semibold text-gold">
+                {Number(product.flashCommissionPercent)}%
               </span>
             </div>
           </div>
         ) : (
-          <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="text-base font-bold text-paper">{formatBRL(Number(product.showcasePrice))}</span>
-            <span className="text-xs font-semibold text-gold">
-              {Number(product.showcaseCommissionPercent)}%
-            </span>
+          <div className="mt-2 space-y-1">
+            <div className="text-base font-bold text-paper">{formatBRL(Number(product.showcasePrice))}</div>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs text-mist">Comissão</span>
+              <span className="text-xs font-semibold text-gold">
+                {Number(product.showcaseCommissionPercent)}%
+              </span>
+            </div>
           </div>
         )}
 

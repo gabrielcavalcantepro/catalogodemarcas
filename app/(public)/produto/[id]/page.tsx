@@ -96,16 +96,16 @@ export default async function ProdutoPage({
             )}
 
             {hasFlash && (
-              <div className="mt-3 flex items-baseline justify-between border-t border-graphite pt-3">
-                <span className="text-sm text-mist">Preço de oferta relâmpago</span>
-                <span className="flex items-baseline gap-2">
+              <div className="mt-3 border-t border-graphite pt-3">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-mist">Preço de oferta relâmpago</span>
                   <span className="font-display text-heading-sm text-gold">
                     {formatBRL(Number(product.flashPrice))}
                   </span>
-                  <span className="text-sm font-semibold text-gold">
-                    {Number(product.flashCommissionPercent)}%
-                  </span>
-                </span>
+                </div>
+                <div className="mt-1 text-right font-display text-heading-sm text-gold">
+                  {Number(product.flashCommissionPercent)}% de comissão
+                </div>
               </div>
             )}
           </div>
