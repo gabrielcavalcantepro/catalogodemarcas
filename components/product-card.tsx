@@ -86,12 +86,10 @@ export function ProductCard({
           )}
 
           {limitStatus && (
-            <div
-              className={`pt-1.5 text-xs ${limitStatus.reached ? "font-medium text-gold" : "text-mist"}`}
-            >
+            <div className="pt-1.5 text-xs font-medium text-orange-400">
               {limitStatus.reached
                 ? "Limite de amostras desta marca atingido"
-                : `${limitStatus.limit - limitStatus.used} amostra${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} restante${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} nesta marca`}
+                : `Você pode solicitar até ${limitStatus.limit - limitStatus.used} amostra${limitStatus.limit - limitStatus.used === 1 ? "" : "s"}`}
             </div>
           )}
         </div>

@@ -713,3 +713,12 @@ Depois disso: polimento visual do card de produto na grade pública.
   foto de produto ausente, não pra loading state) — trocado por
   `bg-graphite` em `components/product-grid-skeleton.tsx`, consistente
   com o resto da paleta escura.
+
+Depois disso: copy do limite de amostras trocada de "N amostras
+restantes nesta marca"/gold pra "Você pode solicitar até N amostras"/
+`text-orange-400` — cor nova de propósito (não reaproveita `--color-gold`
+existente), já que o pedido era destacar essa mensagem das outras cores
+douradas já presentes no card (preço de oferta, comissão, botão). Mesma
+mudança em `ProductCard` e na página de detalhe; a copy do caso "limite
+atingido" não mudou (só a cor), porque a frase nova ("pode solicitar até
+N") não faz sentido quando restam 0.

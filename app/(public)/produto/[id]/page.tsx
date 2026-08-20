@@ -101,10 +101,10 @@ export default async function ProdutoPage({
           </div>
 
           {limitStatus && (
-            <div className={`mt-3 text-sm ${limitStatus.reached ? "font-medium text-gold" : "text-mist"}`}>
+            <div className="mt-3 text-sm font-medium text-orange-400">
               {limitStatus.reached
                 ? "Limite de amostras desta marca atingido"
-                : `${limitStatus.limit - limitStatus.used} amostra${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} restante${limitStatus.limit - limitStatus.used === 1 ? "" : "s"} nesta marca`}
+                : `Você pode solicitar até ${limitStatus.limit - limitStatus.used} amostra${limitStatus.limit - limitStatus.used === 1 ? "" : "s"}`}
             </div>
           )}
 
