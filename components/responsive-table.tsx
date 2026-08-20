@@ -22,7 +22,7 @@ export function ResponsiveTable<T>({
 
   return (
     <>
-      <div className="hidden overflow-hidden rounded-[20px] border border-graphite md:block">
+      <div className="hidden overflow-x-auto rounded-[20px] border border-graphite md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-ink text-mist">
             <tr>

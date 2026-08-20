@@ -284,7 +284,19 @@ Admin (protegido por [`proxy.ts`](./proxy.ts), que substitui o antigo
   colunas (`{ header, cell(row) }`) usado pelas 6 tabelas do admin (Marcas,
   Produtos, Criadoras, Fila, Limites, Divulgações) — renderiza `<table>`
   tradicional em `≥768px` e cards empilhados (pares label/valor) abaixo
-  disso, nunca tabela com scroll horizontal. A última coluna (header `""`)
+  disso. O wrapper do `<table>` tinha `overflow-hidden` (só pra cortar os
+  cantos quadrados da tabela dentro do `rounded-[20px]`) — colunas de ação
+  com 3 botões (Criadoras com "Aprovar" pendente, Produtos com Duplicar)
+  passaram a estourar a largura da tabela em telas ~1280px, e
+  `overflow-hidden` escondia os botões de verdade, sem nenhuma forma de
+  alcançar Aprovar/Excluir (nem scroll). Corrigido em duas camadas: o
+  wrapper virou `overflow-x-auto` (nunca mais esconde nada de verdade,
+  só exige scroll no pior caso) e os 3 `<div className="flex justify-
+  end gap-2">` de ações (Criadoras/Produtos/Marcas) ganharam `flex-wrap`,
+  que deixa os botões empilharem em vez de forçar a coluna mais larga —
+  na prática, resolve sozinho em ≥1366px (a maioria das telas reais);
+  só embaixo disso ainda precisa do scroll de reserva.
+  A última coluna (header `""`)
   é sempre tratada como ações e aparece sem label, no rodapé do card
   mobile — convenção que as 6 páginas já seguiam antes desse componente
   existir.

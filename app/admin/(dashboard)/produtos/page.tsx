@@ -57,7 +57,7 @@ export default async function ProdutosPage({
     {
       header: "",
       cell: (p) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Link href={`/admin/produtos/${p.id}`}>
             <Button variant="secondary">
               <Pencil size={16} strokeWidth={1.75} />

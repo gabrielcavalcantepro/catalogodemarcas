@@ -59,7 +59,7 @@ export default async function CriadorasPage() {
     {
       header: "",
       cell: (c) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Link href={`/admin/criadoras/${c.id}`}>
             <Button variant="secondary">
               <Pencil size={16} strokeWidth={1.75} />
