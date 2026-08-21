@@ -37,14 +37,14 @@ export default async function CriadorasPage() {
       cell: (c) => {
         if (!c.name) {
           return (
-            <span className="rounded-full bg-gold/15 px-2 py-1 text-xs font-medium text-gold">
+            <span className="rounded-full bg-gold/15 px-2 py-1 text-xs font-medium whitespace-nowrap text-gold">
               Aguardando registro
             </span>
           );
         }
         if (!c.approved) {
           return (
-            <span className="rounded-full bg-gold/15 px-2 py-1 text-xs font-medium text-gold">
+            <span className="rounded-full bg-gold/15 px-2 py-1 text-xs font-medium whitespace-nowrap text-gold">
               Aguardando aprovação
             </span>
           );
@@ -61,9 +61,8 @@ export default async function CriadorasPage() {
       cell: (c) => (
         <div className="flex flex-wrap justify-end gap-2">
           <Link href={`/admin/criadoras/${c.id}`}>
-            <Button variant="secondary">
+            <Button variant="secondary" className="px-3" aria-label="Editar">
               <Pencil size={16} strokeWidth={1.75} />
-              Editar
             </Button>
           </Link>
           {c.name && !c.approved && (
@@ -78,10 +77,10 @@ export default async function CriadorasPage() {
           <form action={deleteCreator}>
             <input type="hidden" name="creatorId" value={c.id} />
             <ConfirmSubmitButton
+              className="px-3"
+              aria-label="Excluir"
               confirmMessage={`Excluir a criadora "${c.name ?? c.tiktokHandle}"? Isso remove também o histórico de solicitações, limites e divulgações dela${c.name ? " e ela perde o acesso ao catálogo" : ""}.`}
-            >
-              Excluir
-            </ConfirmSubmitButton>
+            />
           </form>
         </div>
       ),

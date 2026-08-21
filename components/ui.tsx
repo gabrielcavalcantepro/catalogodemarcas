@@ -5,7 +5,7 @@ function cx(...classes: Array<string | false | undefined>) {
 }
 
 const buttonBase =
-  "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-[10px] px-5 py-3 text-sm font-bold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-[10px] px-5 py-3 text-sm font-bold whitespace-nowrap transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none";
 
 const buttonVariants = {
   primary: "bg-gold text-ink hover:bg-gold-dark active:scale-[0.98] transition-transform",

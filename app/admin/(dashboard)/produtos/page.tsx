@@ -59,9 +59,8 @@ export default async function ProdutosPage({
       cell: (p) => (
         <div className="flex flex-wrap justify-end gap-2">
           <Link href={`/admin/produtos/${p.id}`}>
-            <Button variant="secondary">
+            <Button variant="secondary" className="px-3" aria-label="Editar">
               <Pencil size={16} strokeWidth={1.75} />
-              Editar
             </Button>
           </Link>
           <form action={duplicateProduct}>
@@ -73,9 +72,7 @@ export default async function ProdutosPage({
           </form>
           <form action={deleteProduct}>
             <input type="hidden" name="productId" value={p.id} />
-            <ConfirmSubmitButton confirmMessage={`Excluir o produto "${p.name}"?`}>
-              Excluir
-            </ConfirmSubmitButton>
+            <ConfirmSubmitButton className="px-3" aria-label="Excluir" confirmMessage={`Excluir o produto "${p.name}"?`} />
           </form>
         </div>
       ),

@@ -27,18 +27,17 @@ export default async function MarcasPage() {
       cell: (b) => (
         <div className="flex flex-wrap justify-end gap-2">
           <Link href={`/admin/marcas/${b.id}`}>
-            <Button variant="secondary">
+            <Button variant="secondary" className="px-3" aria-label="Editar">
               <Pencil size={16} strokeWidth={1.75} />
-              Editar
             </Button>
           </Link>
           <form action={deleteBrand}>
             <input type="hidden" name="brandId" value={b.id} />
             <ConfirmSubmitButton
+              className="px-3"
+              aria-label="Excluir"
               confirmMessage={`Excluir a marca "${b.name}"? Isso remove também os produtos e solicitações relacionados.`}
-            >
-              Excluir
-            </ConfirmSubmitButton>
+            />
           </form>
         </div>
       ),

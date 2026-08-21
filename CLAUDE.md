@@ -734,3 +734,23 @@ douradas já presentes no card (preço de oferta, comissão, botão). Mesma
 mudança em `ProductCard` e na página de detalhe; a copy do caso "limite
 atingido" não mudou (só a cor), porque a frase nova ("pode solicitar até
 N") não faz sentido quando restam 0.
+
+Depois disso: segunda rodada na correção de overflow das tabelas do
+admin (a primeira, com `overflow-x-auto` + `flex-wrap`, resolvia só
+parcialmente — dependia de scroll horizontal em telas mais estreitas).
+Com criadoras reais preenchendo nome/e-mail de verdade (antes era só
+"—"), essas colunas cresceram e voltaram a espremer o resto: o botão
+"Ver no TikTok" e os badges de status ("Aguardando registro"/"Aguardando
+aprovação") quebravam texto em 2 linhas de forma feia. Corrigido com
+`whitespace-nowrap` — no `buttonBase` de `components/ui.tsx` (todo botão
+do app, não só esse) e nos badges de status em `criadoras/page.tsx`.
+Também: botões "Editar"/"Excluir" viram ícone-só (sem o texto ao lado,
+`className="px-3"` + `aria-label` no lugar do texto) nas 3 tabelas que
+os usam (Criadoras, Marcas, Produtos) — `ConfirmSubmitButton` já
+aceitava `children` opcional (só o ícone `Trash2` é fixo), então bastou
+não passar texto. Reduz a largura da coluna de ações o suficiente pra
+casos comuns (nome normal, 2-3 botões) caberem sem nenhum scroll em
+telas ≥1440px; nomes muito longos combinados com "Aguardando aprovação"
+(3 botões) ainda podem exigir o scroll de reserva do `overflow-x-auto` —
+aceitável, já que o objetivo era nunca mais esconder um botão sem
+nenhuma forma de alcançá-lo, não eliminar 100% dos casos extremos.
