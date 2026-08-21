@@ -5,12 +5,13 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ErrorText, Field, Input, Label } from "@/components/ui";
 import { FormSelect } from "@/components/form-select";
+import { CreatorCombobox, type CreatorOption } from "@/components/creator-combobox";
 import { FormDateField } from "@/components/form-date-field";
 import { createContentPost, type ContentPostFormState } from "./actions";
 
 const initialState: ContentPostFormState = {};
 
-type Creator = { id: string; name: string | null; tiktokHandle: string };
+type Creator = CreatorOption;
 type Brand = { id: string; name: string };
 type Product = { id: string; name: string; brandId: string };
 
@@ -45,14 +46,7 @@ export function ContentPostForm({
     <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
       <Field>
         <Label htmlFor="creatorId">Criadora</Label>
-        <FormSelect
-          name="creatorId"
-          required
-          options={creators.map((c) => ({
-            value: c.id,
-            label: `${c.name ?? "(aguardando registro)"} (@${c.tiktokHandle})`,
-          }))}
-        />
+        <CreatorCombobox name="creatorId" creators={creators} required />
       </Field>
       <Field>
         <Label htmlFor="brandId">Marca</Label>

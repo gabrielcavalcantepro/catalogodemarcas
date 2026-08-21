@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button, ErrorText, Field, Input, Label } from "@/components/ui";
 import { FormSelect } from "@/components/form-select";
+import { CreatorCombobox, type CreatorOption } from "@/components/creator-combobox";
 import { setCreatorBrandLimit, type LimitFormState } from "./actions";
 
 const initialState: LimitFormState = {};
@@ -15,7 +16,7 @@ export function SetLimitForm({
   defaultBrandId,
   defaultLimit,
 }: {
-  creators: { id: string; name: string | null; tiktokHandle: string }[];
+  creators: CreatorOption[];
   brands: { id: string; name: string }[];
   defaultCreatorId?: string;
   defaultBrandId?: string;
@@ -32,14 +33,11 @@ export function SetLimitForm({
       <Field>
         <Label htmlFor="creatorId">Criadora</Label>
         <div className="min-w-48">
-          <FormSelect
+          <CreatorCombobox
             name="creatorId"
+            creators={creators}
             defaultValue={defaultCreatorId}
             required
-            options={creators.map((c) => ({
-              value: c.id,
-              label: `${c.name ?? "(aguardando registro)"} (@${c.tiktokHandle})`,
-            }))}
           />
         </div>
       </Field>

@@ -754,3 +754,33 @@ telas ≥1440px; nomes muito longos combinados com "Aguardando aprovação"
 (3 botões) ainda podem exigir o scroll de reserva do `overflow-x-auto` —
 aceitável, já que o objetivo era nunca mais esconder um botão sem
 nenhuma forma de alcançá-lo, não eliminar 100% dos casos extremos.
+
+Depois disso: `components/creator-combobox.tsx` (novo) substitui o
+`FormSelect` genérico nos dois lugares que selecionam criadora
+(Divulgações, Limites por Criadora). Não dá pra usar o Select do
+Base UI/shadcn aqui: (1) `alignItemWithTrigger` (padrão `true` em
+`SelectContent`) tenta alinhar o item selecionado com o trigger, o que
+às vezes posiciona o popup por cima do campo acima dele — o Select
+nativo do sistema faz isso de propósito, mas aqui atrapalha; (2) Select
+não tem busca embutida (é um padrão de combobox, não de select
+simples), e navegação por teclado do Select entra em conflito com
+digitar num input dentro do popup. Implementado do zero como
+`<div className="relative">` com um `<div className="absolute top-full
+...">` — garante 100% que o dropdown abre sempre abaixo do trigger,
+nunca em cima. Cada item mostra `@handle` (não nome, mais curto e mais
+fácil de escanear) com uma bolinha de status (`bg-emerald-500` = tem
+nome e `approved`; `bg-orange-400` = qualquer outro caso — sem nome OU
+aguardando aprovação, já que pra esse contexto de escolher quem já
+pode ser creditada numa divulgação o que importa é "tá pronta" vs "não
+tá", não o motivo exato). Achei um bug no meio do caminho: o dropdown
+tem `w-full` (mesma largura do campo "Criadora", que é bem estreito no
+grid de 6 colunas do formulário de Divulgações) e os itens da lista
+não tinham `truncate` — o texto do @handle vazava visualmente pra fora
+da caixa em vez de cortar. Corrigido com `truncate` (mais `min-w-0` no
+`<button>` do item, sem isso `truncate` não funciona dentro de um flex
+container) e um `min-w-64` no dropdown pra não depender só da largura
+do campo estreito. Participa de `FormData` via um
+`<input type="hidden" readOnly>` controlado por state — `required`
+num hidden não é validado pelo browser (a spec exclui inputs hidden de
+constraint validation), então a validação de "obrigatório" continua
+sendo responsabilidade do Zod na Server Action, igual já era.
