@@ -119,9 +119,38 @@ abaixo pra explicação técnica completa):
   (`@@unique([creatorId, brandId])`). Só existe linha quando a equipe já
   ajustou manualmente; se não existir, o limite efetivo é
   `Brand.defaultSampleLimit`.
+- **SampleDelivery** — entrega física de amostra (aba "Gerenciamento de
+  Amostras"), separada de `SampleRequest` de propósito: `SampleRequest` é
+  o clique em "Solicitar Amostra" (fila de convite/aprovação);
+  `SampleDelivery` é o controle logístico manual de "quem tem o quê em
+  mãos" — nunca vai ser dado de API mesmo com integração completa à
+  TikTok Shop, é sempre a equipe olhando o Seller Center e registrando à
+  mão. `status` (`IN_TRANSIT`/`RECEIVED`, `@default(IN_TRANSIT)`) é
+  editável por linha. É a fonte de verdade de quais produtos uma criadora
+  tem de uma marca — a aba Divulgações lê daqui, não duplica. Cadastrar
+  vários produtos de uma vez (`createSampleDelivery` em
+  `app/admin/(dashboard)/amostras/actions.ts`) cria uma linha por produto
+  via `createMany`, cada uma com status próprio, editável depois
+  independente das outras daquele mesmo cadastro. Sem `@@unique` de
+  propósito — a mesma criadora pode ter mais de um registro do mesmo
+  produto (reenvio por avaria/perda), controle manual sem trava no banco;
+  testado criando duas `SampleDelivery` do mesmo produto+criadora+marca
+  sem erro.
 - **ContentPost** — divulgação (substitui a planilha de UGC): criadora +
-  marca (obrigatório, para a contagem agregada por marca) + produto
-  (opcional) + tipo + data + link.
+  marca (obrigatório, para a contagem agregada por marca) + produto +
+  tipo + data + link. `productId` continua opcional no schema (53
+  registros históricos já existiam sem produto antes de `SampleDelivery`
+  existir) — a obrigatoriedade pedida pro fluxo novo é só validação em
+  `createContentPost` (`app/admin/(dashboard)/divulgacoes/actions.ts`),
+  sem tocar no dado antigo. `contentType` mantém `STORY` no enum do
+  schema (não custa manter um valor não usado), mas o formulário e a
+  validação Zod de `createContentPost` só aceitam `VIDEO`/`LIVE` — Story
+  saiu de uso. Toda `LIVE` também exige produto (nunca genérica) e nunca
+  tem `link` (não existe conteúdo gravado pra linkar; a action zera esse
+  campo pra `LIVE` mesmo que o client mande algo). `createContentPost`
+  reconfere no servidor que o produto enviado tem uma `SampleDelivery`
+  com `status: RECEIVED` pra aquela criadora+marca — não confia só na
+  restrição client-side do dropdown (que já lista apenas os recebidos).
 - **Settings** — linha única fixa (`id` sempre `1`, `@default(1)` no Int
   força isso), lida/escrita via `lib/settings.ts`
   (`isCatalogLocked`/`setCatalogLocked`, sempre `upsert` — não depende de
@@ -141,7 +170,9 @@ Admin (protegido por [`proxy.ts`](./proxy.ts), que substitui o antigo
 `middleware.ts` no Next 16 — roda em Node runtime, não Edge):
 `/admin/login`, `/admin`, `/admin/criadoras` (+`/nova`, `/[id]`),
 `/admin/marcas` (+`/nova`, `/[id]`), `/admin/produtos` (+`/novo`, `/[id]`),
-`/admin/fila` (+`?status=done`), `/admin/limites`, `/admin/divulgacoes`.
+`/admin/fila` (+`?status=done`), `/admin/limites`, `/admin/amostras`
+(Gerenciamento de Amostras — `SampleDelivery`), `/admin/divulgacoes`
+(navegação por marca via `?marca=`, ver seção abaixo).
 
 ## Decisões e armadilhas técnicas
 
@@ -784,3 +815,75 @@ do campo estreito. Participa de `FormData` via um
 num hidden não é validado pelo browser (a spec exclui inputs hidden de
 constraint validation), então a validação de "obrigatório" continua
 sendo responsabilidade do Zod na Server Action, igual já era.
+
+Depois disso: reformulação completa de gestão de amostras e divulgações —
+plano apresentado e aprovado antes de implementar (schema, telas, navegação).
+Contexto: a plataforma não tinha nenhum controle de entrega física de
+amostra (quem recebeu o quê), e Divulgações misturava todas as criadoras
+numa lista única sem mostrar quem estava com produto em mãos sem ter
+postado nada.
+- **`SampleDelivery`** (modelo novo, ver "Modelo de dados" acima) — aba
+  **Gerenciamento de Amostras** (`/admin/amostras`, nova, ícone
+  `PackageCheck` em `components/admin-nav.tsx`): `ResponsiveTable` com
+  filtro por marca/status, cadastro (`components/sample-delivery-form.tsx`)
+  seleciona criadora + marca + um ou mais produtos e cria uma linha por
+  produto, status editável inline por linha
+  (`components/inline-delivery-status.tsx`, mesmo padrão
+  `useTransition` de `inline-edit-product.tsx`).
+- **`components/modal.tsx`** (novo) — primeiro componente de dialog do
+  projeto (overlay + painel centralizado, fecha com Escape ou clique
+  fora); usado tanto pelo cadastro de amostra quanto pelos dois modais
+  novos de Divulgações abaixo.
+- **Divulgações redesenhada** (`/admin/divulgacoes`) — navegação por
+  marca via `?marca=` (pills, sem marca na URL pré-seleciona a primeira
+  em ordem alfabética sem redirect real, só client-side). Com marca
+  selecionada, a página busca todas as `SampleDelivery` daquela marca e
+  monta a lista a partir DELAS (não de `ContentPost`) — por isso uma
+  criadora aparece na tela mesmo com zero divulgações, que é o ponto
+  central do pedido (mostrar quem está com produto parado). Cada card
+  (`app/admin/(dashboard)/divulgacoes/creator-post-row.tsx`) mostra
+  nome+@ com link pro TikTok (`tiktok.com/@` + handle, sem campo novo),
+  contagem de vídeo/live separada (`contentPost.groupBy`), badges de
+  produto com status (Em trânsito/Recebida), e dois botões que abrem
+  modais: "Registrar divulgação"
+  (`register-post-form.tsx` — criadora+marca fixas, produto restrito aos
+  `RECEIVED` daquela criadora+marca, tipo Vídeo/Live sem Story, campo
+  Link some pra Live) e "Histórico"
+  (`creator-history-modal.tsx` — só os posts dela, nunca misturado).
+  Removidos por completo: o painel resumido "Divulgações por marca"
+  (redundante — a tela inteira já é sempre de uma marca) e a seção
+  "Histórico" global no fim da página (todo mundo junto). O card
+  "Divulgações por criadora" (ranking cross-marca) foi mantido — não fazia
+  parte do que foi pedido pra remover, e continua útil como métrica
+  diferente da lista principal (que é sempre escopada a uma marca).
+  Atalho **"+ Nova amostra"** no topo
+  (`new-sample-shortcut.tsx`) reaproveita o mesmo
+  `components/sample-delivery-form.tsx` da aba (1) com `fixedBrandId` —
+  não reimplementa nada, só esconde o campo Marca (vira texto + hidden
+  input) quando a prop vem preenchida.
+- **`createContentPost`** (`divulgacoes/actions.ts`) — Zod restrito a
+  `contentType: "VIDEO" | "LIVE"` (schema Prisma mantém `STORY` no enum,
+  só não é mais oferecido) e `productId` obrigatório; adicionada uma
+  reconferência server-side (`sampleDelivery.findFirst` com
+  `status: RECEIVED`) antes de criar o post — não confia só na restrição
+  do dropdown no client. `link` é zerado à força quando `contentType` é
+  `LIVE`, mesmo que algo chegue no campo.
+- **Implicação não trivial pra dado histórico**: como a lista de
+  Divulgações agora nasce de `SampleDelivery`, uma criadora com
+  `ContentPost` antigos só volta a aparecer (com o histórico completo,
+  não só os posts novos) depois que a equipe cadastrar pelo menos uma
+  `SampleDelivery` pra ela naquela marca — confirmado no teste (uma
+  criadora com 14 vídeos antigos ficou fora da lista até eu criar a
+  primeira amostra pra ela, e ao criar os 14 reapareceram inteiros, não
+  só os novos). Não é um bug: é a mudança de fonte de verdade pedida.
+- Verificado ponta a ponta contra `next build && next start` (Playwright):
+  criar amostra em trânsito → criadora aparece em Divulgações mesmo sem
+  post; marcar como recebida em Amostras → produto passa a aparecer nas
+  opções do formulário de divulgação (só o recebido, não os em trânsito);
+  registrar vídeo (com link) e live (sem campo link) → contagens separam
+  corretamente (15/1 depois de 14/0); Histórico mostra só a criadora
+  certa, com "Abrir" só nos vídeos; duplicar amostra do mesmo produto pra
+  mesma criadora não gera erro (confirma a ausência intencional de
+  `@@unique`). Dados de teste (2 `SampleDelivery`, 2 `ContentPost`)
+  removidos ao final pela própria UI, com contagem final conferida direto
+  no banco batendo com o estado anterior ao teste.

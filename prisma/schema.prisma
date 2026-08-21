@@ -25,9 +25,10 @@ model Creator {
   approved     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  sampleRequests SampleRequest[]
-  brandLimits    CreatorBrandLimit[]
-  contentPosts   ContentPost[]
+  sampleRequests   SampleRequest[]
+  brandLimits      CreatorBrandLimit[]
+  contentPosts     ContentPost[]
+  sampleDeliveries SampleDelivery[]
 }
 
 // Configuração global única (linha fixa id=1, ver lib/settings.ts).
@@ -45,10 +46,11 @@ model Brand {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  products       Product[]
-  sampleRequests SampleRequest[]
-  creatorLimits  CreatorBrandLimit[]
-  contentPosts   ContentPost[]
+  products         Product[]
+  sampleRequests   SampleRequest[]
+  creatorLimits    CreatorBrandLimit[]
+  contentPosts     ContentPost[]
+  sampleDeliveries SampleDelivery[]
 }
 
 enum SampleRequestBehavior {
@@ -58,27 +60,28 @@ enum SampleRequestBehavior {
 
 // Produto vinculado a uma marca.
 model Product {
-  id                         String                 @id @default(cuid())
-  brandId                    String
-  brand                      Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  name                       String
-  description                String
-  differentials              String[]
-  showcasePrice              Decimal                @db.Decimal(10, 2)
-  showcaseCommissionPercent  Decimal                @db.Decimal(5, 2)
+  id                        String                @id @default(cuid())
+  brandId                   String
+  brand                     Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name                      String
+  description               String
+  differentials             String[]
+  showcasePrice             Decimal               @db.Decimal(10, 2)
+  showcaseCommissionPercent Decimal               @db.Decimal(5, 2)
   // Oferta relâmpago: opcional, sem agendamento — a equipe preenche/limpa
   // os dois campos manualmente para ativar/desativar. Andam sempre juntos.
-  flashPrice                 Decimal?               @db.Decimal(10, 2)
-  flashCommissionPercent     Decimal?               @db.Decimal(5, 2)
-  photoUrls                  String[]
-  requestBehavior            SampleRequestBehavior
-  tiktokShopUrl              String?
-  active                     Boolean                @default(true)
-  createdAt                  DateTime               @default(now())
-  updatedAt                  DateTime               @updatedAt
+  flashPrice                Decimal?              @db.Decimal(10, 2)
+  flashCommissionPercent    Decimal?              @db.Decimal(5, 2)
+  photoUrls                 String[]
+  requestBehavior           SampleRequestBehavior
+  tiktokShopUrl             String?
+  active                    Boolean               @default(true)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
 
-  sampleRequests SampleRequest[]
-  contentPosts   ContentPost[]
+  sampleRequests   SampleRequest[]
+  contentPosts     ContentPost[]
+  sampleDeliveries SampleDelivery[]
 
   @@index([brandId])
 }
@@ -90,16 +93,16 @@ enum SampleRequestStatus {
 
 // Registro de clique em "Solicitar Amostra" (4.1 / 5.3 / 6.2).
 model SampleRequest {
-  id                String                 @id @default(cuid())
+  id                String                @id @default(cuid())
   creatorId         String
-  creator           Creator                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator           Creator               @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   productId         String
-  product           Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product           Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
   brandId           String
-  brand             Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand             Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
   behaviorAtRequest SampleRequestBehavior
-  status            SampleRequestStatus    @default(PENDING)
-  createdAt         DateTime               @default(now())
+  status            SampleRequestStatus   @default(PENDING)
+  createdAt         DateTime              @default(now())
 
   // Uma criadora não pode solicitar o mesmo produto duas vezes (spec §4.2)
   // — garantia real no banco, não só uma dica visual no botão.
@@ -145,4 +148,36 @@ model ContentPost {
 
   @@index([creatorId])
   @@index([brandId])
+}
+
+enum SampleDeliveryStatus {
+  IN_TRANSIT
+  RECEIVED
+}
+
+// Entrega física de amostra (aba "Gerenciamento de Amostras") — separado
+// de SampleRequest de propósito: SampleRequest é o clique em "Solicitar
+// Amostra" (fila de convite), isso aqui é o controle logístico manual de
+// "quem tem o quê em mãos", que nunca vai ser dado de API mesmo com
+// integração completa à TikTok Shop. Fonte de verdade de quais produtos
+// uma criadora tem de uma marca — Divulgações lê daqui, não duplica.
+// Selecionar vários produtos de uma vez cria uma linha por produto (cada
+// uma com status próprio). Sem @@unique de propósito — a mesma
+// criadora pode ter mais de uma linha do mesmo produto (reenvio por
+// avaria/perda), controle manual da equipe, sem trava no banco.
+model SampleDelivery {
+  id        String               @id @default(cuid())
+  creatorId String
+  creator   Creator              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  brandId   String
+  brand     Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  status    SampleDeliveryStatus @default(IN_TRANSIT)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([creatorId])
+  @@index([brandId])
+  @@index([productId])
 }

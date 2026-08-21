@@ -10,6 +10,7 @@ import {
   Inbox,
   SlidersHorizontal,
   Video,
+  PackageCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +21,7 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/admin/produtos", label: "Produtos", icon: Package },
   { href: "/admin/fila", label: "Fila de Solicitações", icon: Inbox },
   { href: "/admin/limites", label: "Limites por Criadora", icon: SlidersHorizontal },
+  { href: "/admin/amostras", label: "Gerenciamento de Amostras", icon: PackageCheck },
   { href: "/admin/divulgacoes", label: "Divulgações", icon: Video },
 ];
 
